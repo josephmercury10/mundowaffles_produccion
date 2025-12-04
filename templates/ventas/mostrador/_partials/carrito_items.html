@@ -1,0 +1,71 @@
+<div class="card-body p-0">
+    {% if carrito_items %}
+    <table class="table table-sm mb-0">
+        <tbody>
+            {% for item in carrito_items %}
+            <tr>
+                <td class="align-middle">
+                    <strong>{{ item.nombre[:25] }}</strong><br>
+                    <small class="text-muted">${{ item.precio|format_price }} c/u</small>
+                </td>
+                <td class="align-middle text-center" style="width: 100px;">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary"
+                                hx-post="/mostrador/actualizar_cantidad"
+                                hx-vals='{"item_id": "{{ item.id }}", "accion": "disminuir"}'
+                                hx-target="#carrito-container"
+                                hx-swap="innerHTML">−</button>
+                        <span class="btn btn-light disabled">{{ item.cantidad }}</span>
+                        <button class="btn btn-outline-secondary"
+                                hx-post="/mostrador/actualizar_cantidad"
+                                hx-vals='{"item_id": "{{ item.id }}", "accion": "aumentar"}'
+                                hx-target="#carrito-container"
+                                hx-swap="innerHTML">+</button>
+                    </div>
+                </td>
+                <td class="align-middle text-end" style="width: 80px;">
+                    <strong>${{ item.subtotal|format_price }}</strong>
+                </td>
+                <td class="align-middle text-center" style="width: 40px;">
+                    <button class="btn btn-sm btn-outline-danger"
+                            hx-delete="/mostrador/eliminar_producto/{{ item.id }}"
+                            hx-target="#carrito-container"
+                            hx-swap="innerHTML">🗑️</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-4">
+        <p class="mb-0">🛒 Carrito vacío</p>
+        <small>Haz clic en un producto para agregarlo</small>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Resumen y botón de confirmar -->
+<div class="card-footer">
+    <div class="d-flex justify-content-between mb-2">
+        <span>Subtotal:</span>
+        <strong>${{ subtotal|format_price }}</strong>
+    </div>
+    <hr class="my-2">
+    <div class="d-flex justify-content-between mb-3">
+        <span class="h5 mb-0">Total:</span>
+        <span class="h5 mb-0 text-primary">${{ total|format_price }}</span>
+    </div>
+    
+    {% if carrito_items %}
+    <button class="btn btn-success w-100"
+            hx-post="/mostrador/guardar_pedido"
+            hx-target="#right_panel"
+            hx-swap="innerHTML">
+        ✓ Confirmar Pedido
+    </button>
+    {% else %}
+    <button class="btn btn-secondary w-100" disabled>
+        Agrega productos para continuar
+    </button>
+    {% endif %}
+</div>

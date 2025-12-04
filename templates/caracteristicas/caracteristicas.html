@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+<body>
+  <div class="main-container">
+    {% block left_panel %}
+    <h1>Caracteristicas</h1>
+    <div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">nombre</th>
+            <th scope="col">estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for caracteristica in caracteristicas %}
+          <tr>
+            <th scope="row">{{ caracteristica.id}}</th>
+            <td>{{ caracteristica.nombre }}</td>
+            <td>{{ caracteristica.descripcion }}</td>
+            <td>
+              {% if caracteristica.estado %}
+              <span style="color: green">Activo</span>
+              {% else %}
+              <span style="color: red">Inactivo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endblock %} {% block right_panel %}
+    <h1>holaaaa</h1>
+    {% endblock %}
+  </div>
+</body>

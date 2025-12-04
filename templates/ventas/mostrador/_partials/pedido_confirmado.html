@@ -1,0 +1,46 @@
+<div class="new-order-panel">
+    <div class="new-order-header bg-success text-white">✓ PEDIDO CONFIRMADO</div>
+</div>
+
+<div class="container w-100 mt-4">
+    <div class="card border-success">
+        <div class="card-body text-center">
+            <div class="mb-4">
+                <svg class="text-success" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="16 8 10 14 7 11"></polyline>
+                </svg>
+            </div>
+            
+            <h3 class="text-success mb-3">¡Pedido Creado Exitosamente!</h3>
+            
+            <div class="bg-light rounded p-3 mb-4">
+                <h4 class="mb-2">Pedido #{{ pedido.id }}</h4>
+                <p class="mb-1">
+                    <strong>Fecha:</strong> {{ pedido.fecha_hora.strftime('%d/%m/%Y %H:%M') }}
+                </p>
+                <p class="mb-0">
+                    <strong>Total:</strong> <span class="h4 text-primary">${{ total|format_price }}</span>
+                </p>
+            </div>
+            
+            <p class="text-muted mb-4">
+                El pedido ha sido enviado a preparación.
+            </p>
+            
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-primary"
+                        hx-get="/mostrador/nuevo_pedido"
+                        hx-target="#right_panel"
+                        hx-swap="innerHTML">
+                    + Nuevo Pedido
+                </button>
+                <button class="btn btn-outline-secondary"
+                        hx-post="/mostrador/imprimir_pedido/{{ pedido.id }}"
+                        hx-swap="none">
+                    🖨️ Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

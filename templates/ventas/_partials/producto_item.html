@@ -1,0 +1,193 @@
+<div class="producto-item" id="producto-{{ producto.id }}">
+    <div class="d-flex justify-content-between align-items-center border-bottom p-2">
+        <div>
+            {{ producto.nombre }}
+            <div class="cantidad-controls">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                    onclick="decrementarCantidad('{{ producto.id }}', '{{ producto.nombre }}')">
+                    -
+                </button>
+                <span class="mx-2" id="cantidad-{{ producto.id }}">1</span>
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                    onclick="incrementarCantidad('{{ producto.id }}', '{{ producto.nombre }}')">
+                    +
+                </button>
+
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <span id="precio-{{ producto.id }}" class="me-3">${{ producto.precio }}</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarProducto('{{ producto.id }}')">
+                ×
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Objeto global para almacenar los productos del carrito
+    if (!window.carritoItems) {
+        window.carritoItems = {};
+    }
+
+    // Guardar producto en el carrito (solo si no existe)
+    if (!window.carritoItems['{{ producto.id }}']) {
+        window.carritoItems['{{ producto.id }}'] = {
+            id: '{{ producto.id }}',
+            nombre: '{{ producto.nombre }}',
+            precio: '{{ producto.precio|default(4000) }}',
+            cantidad: 1
+        };
+    }
+
+    function decrementarCantidad(id, nombre) {
+        // Obtener elemento de cantidad
+        const cantidadElement = document.getElementById(`cantidad-${id}`);
+        let cantidad = parseInt(cantidadElement.textContent);
+
+        // No permitir cantidades menores a 1
+        if (cantidad > 1) {
+            cantidad--;
+            cantidadElement.textContent = cantidad;
+
+            // Actualizar en el objeto global
+            window.carritoItems[id].cantidad = cantidad;
+
+            // Actualizar precio total del producto
+            actualizarPrecioProducto(id);
+
+            // Actualizar totales
+            actualizarTotalesCarrito();
+        }
+    }
+
+    function incrementarCantidad(id, nombre) {
+        // Obtener elemento de cantidad
+        const cantidadElement = document.getElementById(`cantidad-${id}`);
+        let cantidad = parseInt(cantidadElement.textContent);
+
+        // Incrementar cantidad
+        cantidad++;
+        cantidadElement.textContent = cantidad;
+
+        // Actualizar en el objeto global
+        window.carritoItems[id].cantidad = cantidad;
+
+        // Actualizar precio total del producto
+        actualizarPrecioProducto(id);
+
+        // Actualizar totales
+        actualizarTotalesCarrito();
+    }
+
+    function eliminarProducto(id) {
+        // Eliminar elemento del DOM
+        document.getElementById(`producto-${id}`).remove();
+
+        // Eliminar del objeto global
+        delete window.carritoItems[id];
+
+        // Actualizar totales
+        actualizarTotalesCarrito();
+
+        // Ocultar botón guardar si no hay productos
+        if (Object.keys(window.carritoItems).length === 0) {
+            const btnGuardar = document.getElementById("btn-guardar");
+            if (btnGuardar) {
+                btnGuardar.style.display = "none";
+            }
+        }
+    }
+
+    function actualizarPrecioProducto(id) {
+        const precioElement = document.getElementById(`precio-${id}`);
+        const item = window.carritoItems[id];
+        precioElement.textContent = `$${(item.precio * item.cantidad).toLocaleString()}`;
+    }
+
+    function actualizarTotalesCarrito() {
+        // Calcular subtotal
+        let subtotal = 0;
+        Object.values(window.carritoItems).forEach(item => {
+            subtotal += item.precio * item.cantidad;
+        });
+
+        // Envío fijo por ahora (podría ser variable)
+        const envio = Object.keys(window.carritoItems).length > 0 ? 1000 : 0;
+
+        // Total
+        const total = subtotal + envio;
+
+        // Actualizar elementos en el DOM
+        document.getElementById('subtotal').textContent = subtotal.toLocaleString();
+        document.getElementById('shipping').textContent = envio.toLocaleString();
+        document.getElementById('total').textContent = total.toLocaleString();
+
+        // Mostrar/ocultar botón "Guardar"
+        const acciones = document.getElementById("acciones");
+        let btnGuardar = document.getElementById("btn-guardar");
+
+        if (Object.keys(window.carritoItems).length > 0) {
+            // Si hay productos en el carrito
+            if (!btnGuardar) {
+                // Si el botón no existe, crearlo
+                btnGuardar = document.createElement("button");
+                btnGuardar.className = "btn btn-primary";
+                btnGuardar.id = "btn-guardar";
+                btnGuardar.textContent = "Guardar";
+                btnGuardar.onclick = function () {
+                    guardarPedido();
+                };
+                acciones.appendChild(btnGuardar);
+            } else {
+                // Si el botón ya existe, mostrarlo
+                btnGuardar.style.display = "";
+            }
+        } else {
+            // Si no hay productos en el carrito
+            if (btnGuardar) {
+                // Si el botón existe, ocultarlo
+                btnGuardar.style.display = "none";
+            }
+        }
+    }
+
+    function guardarPedido() {
+        // Aquí puedes implementar la lógica para guardar el pedido
+        const productos = Object.values(window.carritoItems).map(item => ({
+            id: item.id,
+            cantidad: item.cantidad,
+            precio: item.precio
+        }));
+
+        // Obtener el cliente_id del input oculto
+        const clienteId = document.getElementById('cliente-id') ?
+            document.getElementById('cliente-id').value : null;
+
+        fetch('/pruebas/guardar_pedido', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                productos,
+                cliente_id: clienteId
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Limpiar carrito
+                    window.carritoItems = {};
+                    document.getElementById('productos-seleccionados').innerHTML = '';
+                    actualizarTotalesCarrito();
+                } else {
+                    alert('Error al guardar el pedido: ' + data.message);
+                }
+            });
+    }
+
+    // Actualizar totales al cargar
+    actualizarTotalesCarrito();
+</script>

@@ -1,0 +1,44 @@
+<div class="productos-grid">
+    <input type="text" class="form-control form-control-sm mb-2" 
+           id="buscar-producto-agregar" 
+           placeholder="🔍 Buscar producto..."
+           onkeyup="filtrarProductosAgregar(this.value)">
+    <div class="row" id="grid-productos-agregar">
+    {% for producto in productos %}
+    <div class="col-6 col-lg-4 mb-2 producto-agregar-item" data-nombre="{{ producto.nombre|lower }}">
+        <div class="card h-100" style="cursor:pointer;"
+             hx-post="/delivery/pedido/{{ pedido_id }}/carrito_temp/agregar"
+             hx-vals='{"producto_id": "{{ producto.id }}", "nombre": "{{ producto.nombre }}", "precio": "{{ producto.precio }}"}'
+             hx-target="#items-container"
+             hx-swap="innerHTML">
+            {% if producto.img_path %}
+            <img src="{{ url_for('static', filename='uploads/images/' + producto.img_path) }}" 
+                 class="card-img-top" style="height:60px;object-fit:cover;">
+            {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:60px;">
+                <span class="text-muted">🍽️</span>
+            </div>
+            {% endif %}
+            <div class="card-body p-2 text-center">
+                <small class="d-block">{{ producto.nombre[:18] }}</small>
+                <span class="text-primary fw-bold small">${{ producto.precio|format_price }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-3">
+        <p>No hay productos disponibles</p>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+
+<script>
+function filtrarProductosAgregar(texto) {
+    const filtro = texto.toLowerCase();
+    document.querySelectorAll('.producto-agregar-item').forEach(item => {
+        const nombre = item.dataset.nombre;
+        item.style.display = nombre.includes(filtro) ? '' : 'none';
+    });
+}
+</script>

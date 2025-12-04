@@ -1,0 +1,53 @@
+{% for venta in ventas %}
+<tr hx-get="/mostrador/detalle_pedido/{{ venta.id }}" 
+    hx-target="#right_panel" 
+    hx-swap="innerHTML" 
+    style="cursor:pointer">
+    <td>{{ venta.id }}</td>
+    <td>{{ venta.fecha_hora.strftime('%H:%M') if venta.fecha_hora else '-' }}</td>
+    <td>{{ venta.comentarios if venta.comentarios else 'Cliente Mostrador' }}</td>
+    <td>
+        {% set item_count = venta.productos|length if venta.productos else 0 %}
+        {{ item_count }} item{{ 's' if item_count != 1 else '' }}
+    </td>
+    <td>
+        {{ venta.fecha_hora|timeago if venta.fecha_hora else '-' }}
+    </td>
+    <td>
+        {% if venta.comprobante_id %}
+            <span class="badge bg-success">✓ Pagado</span>
+            {% if venta.comprobante %}
+                <span class="badge bg-secondary ms-1">{{ venta.comprobante.tipo_comprobante }}</span>
+            {% endif %}
+        {% else %}
+            <span class="badge bg-warning text-dark">Pendiente</span>
+        {% endif %}
+    </td>
+    <td>${{ venta.total|format_price }}</td>
+    <td>
+        {% if not venta.comprobante_id %}
+            <button class="btn btn-sm btn-primary"
+                    hx-get="/mostrador/detalle_pedido/{{ venta.id }}"
+                    hx-target="#right_panel"
+                    hx-swap="innerHTML"
+                    onclick="event.stopPropagation()">
+                💰 Cobrar
+            </button>
+        {% endif %}
+        {% if venta.estado_mostrador == 1 and venta.comprobante_id %}
+            <button class="btn btn-sm btn-success ms-1"
+                    hx-post="/mostrador/cambiar_estado/{{ venta.id }}/2"
+                    hx-trigger="click"
+                    onclick="event.stopPropagation()">
+                Listo
+            </button>
+        {% endif %}
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="8" class="text-center text-muted py-4">
+        No hay pedidos en este estado
+    </td>
+</tr>
+{% endfor %}

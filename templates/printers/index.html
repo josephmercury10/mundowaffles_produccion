@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block right_panel %}
+<div class="p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Gestión de Impresoras</h4>
+    <a href="{{ url_for('printers.add') }}" class="btn btn-primary">Agregar Impresora</a>
+  </div>
+  <div class="alert alert-info d-flex justify-content-between align-items-center">
+    <div>
+      <strong>Print Host:</strong> Necesitas el servicio local para imprimir desde el navegador.
+      <div id="ph-status" class="small text-muted">Verificando servicio...</div>
+    </div>
+    <div>
+      <a href="#" class="btn btn-outline-primary" onclick="verificarHost();return false;">Verificar</a>
+      <a href="https://tudominio.com/downloads/MundoWaffles_PrintHost_Setup.exe" class="btn btn-success">Descargar Print Host</a>
+    </div>
+  </div>
+  <form method="get" class="mb-3">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, driver o perfil" class="form-control" />
+      </div>
+      <div class="col-md-3">
+        <select name="estado" class="form-select">
+          <option value="todos" {% if estado=='todos' %}selected{% endif %}>Todos</option>
+          <option value="activos" {% if estado=='activos' %}selected{% endif %}>Activos</option>
+          <option value="inactivos" {% if estado=='inactivos' %}selected{% endif %}>Inactivos</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+      </div>
+    </div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>Driver</th>
+          <th>Tipo</th>
+          <th>Perfil</th>
+          <th>Ancho</th>
+          <th>Feed</th>
+          <th>Corte</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in printers %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.nombre }}</td>
+          <td><code>{{ p.driver_name }}</code></td>
+          <td>{{ (p.tipo|from_json)|join(', ') }}</td>
+          <td>{{ (p.perfil|from_json)|join(', ') }}</td>
+          <td>{{ p.ancho_caracteres }}</td>
+          <td>{{ p.feed_lines }}</td>
+          <td>
+            {% if p.cortar_papel %}
+              <span class="badge bg-success">Sí</span>
+            {% else %}
+              <span class="badge bg-secondary">No</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.estado == 1 %}
+              <span class="badge bg-success">Activo</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('printers.update', printer_id=p.id) }}">Editar</a>
+            {% if p.estado == 1 %}
+              <form method="post" action="{{ url_for('printers.delete', printer_id=p.id) }}" class="d-inline">
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Desactivar impresora?')">Desactivar</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('printers.activate', printer_id=p.id) }}" class="d-inline">
+                <button class="btn btn-sm btn-outline-success">Activar</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted">No hay impresoras configuradas</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function verificarHost(){
+  const el = document.getElementById('ph-status');
+  el.textContent = 'Verificando servicio...';
+  try {
+    const r = await fetch('http://127.0.0.1:8765/health', { method: 'GET' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    if (d && d.status === 'ok') {
+      el.textContent = 'Host activo: v'+(d.version||'');
+      el.classList.remove('text-muted');
+      el.classList.add('text-success');
+    } else {
+      el.textContent = 'Host no responde.';
+      el.classList.remove('text-success');
+      el.classList.add('text-danger');
+    }
+  } catch (e) {
+    el.textContent = 'Host no disponible. Instala/Inicia el Print Host.';
+    el.classList.remove('text-success');
+    el.classList.add('text-danger');
+  }
+}
+// Verificación automática al cargar la página
+verificarHost();
+</script>
+{% endblock %}

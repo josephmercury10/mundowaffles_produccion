@@ -1,0 +1,320 @@
+<div id="right_panel">
+    <div class="new-order-panel">
+        <div class="new-order-header">PEDIDO #{{ venta.id }}</div>
+    </div>
+
+    <!-- Información del Cliente -->
+    <div class="products-header">
+        <div class="order-summary">
+            <span>ID: <strong>{{ cliente.id }}</strong></span><br>
+            <span>Cliente: <strong>{{ cliente.nombre }}</strong></span><br>
+            <span>Teléfono: <strong>{{ cliente.telefono }}</strong></span><br>
+            <span>Dirección: <strong>{{ cliente.direccion }}</strong></span>
+        </div>
+    </div>
+
+    <!-- Productos del Pedido -->
+    <div class="order-items">
+        <h4>Productos en el Pedido</h4>
+        <div id="productos-seleccionados" class="selected-products">
+            <!-- Se renderiza con el DOM -->
+        </div>
+
+        <!-- Agregar Productos -->
+        <div class="mt-4">
+            <h5>Agregar Productos</h5>
+            <div class="row">
+                {% for producto in productos_disponibles %}
+                <div class="col-md-6 mb-2">
+                    <button type="button" class="btn btn-outline-primary w-100"
+                            onclick="agregarProducto('{{ producto.id }}', '{{ producto.nombre }}', '{{ producto.precio }}')">
+                        {{ producto.nombre }} - ${{ producto.precio|int }}
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Totales -->
+        <div class="order-total mt-4">
+            <div>Subtotal: $<span id="subtotal">{{ subtotal }}</span></div>
+            <div>Envío: $<span id="shipping">{{ envio }}</span></div>
+            <div class="fw-bold">Total: $<span id="total">{{ total }}</span></div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="action-buttons mt-3 d-flex gap-2">
+            <button id="btn-guardar-cambios" class="btn btn-success" style="display:none;" onclick="guardarCambios() ">Guardar Cambios</button>
+            
+            {% if venta.estado_delivery == 1 %}
+                <button class="btn btn-warning" 
+                        hx-post="/pruebas/actualizar_estado_delivery/{{ venta.id }}/2"
+                        hx-target="#right_panel"
+                        hx-swap="outerHTML">Envíar</button>
+            {% elif venta.estado_delivery == 2 %}
+                <button class="btn btn-success"
+                        hx-post="/pruebas/actualizar_estado_delivery/{{ venta.id }}/3"
+                        hx-target="#right_panel"
+                        hx-swap="outerHTML">Entregar</button>
+            {% else %}
+                <button class="btn btn-secondary" disabled>Entregado</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inicializar el objeto de productos con los datos actuales
+    window.productosVenta = {};
+    
+    // Cargar los productos existentes
+    window.itemsData = {{ items|tojson }};
+    //cargar la variable de envio
+    window.envioFijo = 1000; // Costo fijo de envío
+    //cargar variable de modificaciones
+    window.hayModificaciones = false;
+
+    console.log('Items cargados:', window.itemsData);
+
+
+     // Inicializar el DOM y el objeto de productos
+    function inicializarProductos() {
+        const contenedorProductos = document.getElementById('productos-seleccionados');
+        contenedorProductos.innerHTML = ''; // Limpiar contenedor
+        
+        window.productosVenta = {}; // Reiniciar objeto
+
+        // Recorrer los items con JavaScript
+        window.itemsData.forEach(item => {
+            // Añadir al objeto productosVenta
+            window.productosVenta[item.id] = {
+                id: item.id,
+                nombre: item.nombre,
+                precio: item.precio,
+                cantidad: item.cantidad,
+                subtotal: item.subtotal
+            };
+            
+            // Crear elemento en el DOM
+            const nuevoProducto = document.createElement('div');
+            nuevoProducto.id = `producto-${item.id}`;
+            nuevoProducto.className = 'selected-product d-flex justify-content-between align-items-center border p-2 mb-2';
+            nuevoProducto.innerHTML = `
+                <div>
+                    <div class="fw-bold">${item.nombre}</div>
+                    <div class="text-muted">Precio unitario: $${item.precio}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" 
+                            onclick="disminuirCantidad('${item.id}', '${item.nombre}', ${item.precio})">-</button>
+                    
+                    <span class="mx-2" id="cantidad-${item.id}">${item.cantidad}</span>
+                    
+                    <button class="btn btn-sm btn-outline-secondary"
+                            onclick="aumentarCantidad('${item.id}', '${item.nombre}', ${item.precio})">+</button>
+                    
+                    <span class="fw-bold ms-3" id="precio-${item.id}">$${item.subtotal}</span>
+                    
+                    <button class="btn btn-sm btn-outline-danger ms-2"
+                            onclick="eliminarProducto('${item.id}')">🗑️</button>
+                </div>
+            `;
+            
+            contenedorProductos.appendChild(nuevoProducto);
+        });
+    }
+    
+    
+    // Funciones para manipular productos
+    function agregarProducto(id, nombre, precio) {
+        if (window.productosVenta[id]) {
+            aumentarCantidad(id, nombre, precio);
+            return;
+        }
+        
+        // Crear nuevo producto
+        window.productosVenta[id] = {
+            id: id,
+            nombre: nombre,
+            precio:  Math.round(precio), // Asegurarse de que el precio es un entero
+            cantidad: 1,
+            subtotal: Math.round(precio)
+        };
+        
+        // Crear elemento en DOM
+        const nuevoProducto = document.createElement('div');
+        nuevoProducto.id = `producto-${id}`;
+        nuevoProducto.className = 'selected-product d-flex justify-content-between align-items-center border p-2 mb-2';
+        nuevoProducto.innerHTML = `
+            <div>
+                <div class="fw-bold">${nombre}</div>
+                <div class="text-muted">Precio unitario: $${Math.round(precio)}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" 
+                        onclick="disminuirCantidad('${id}', '${nombre}', ${Math.round(precio)})">-</button>
+
+                <span class="mx-2" id="cantidad-${id}">1</span>
+                
+                <button class="btn btn-sm btn-outline-secondary"
+                        onclick="aumentarCantidad('${id}', '${nombre}', ${Math.round(precio)})">+</button>
+
+                <span class="fw-bold ms-3" id="precio-${id}">$${Math.round(precio)}</span>
+
+                <button class="btn btn-sm btn-outline-danger ms-2"
+                        onclick="eliminarProducto('${id}')">🗑️</button>
+            </div>
+        `;
+        
+        document.getElementById('productos-seleccionados').appendChild(nuevoProducto);
+        window.hayModificaciones = true;
+        actualizarTotales();
+    }
+
+    
+    function aumentarCantidad(id, nombre, precio) {
+        if (!window.productosVenta[id]) {
+            agregarProducto(id, nombre, precio);
+            return;
+        }
+
+        window.productosVenta[id].cantidad++;
+        window.productosVenta[id].subtotal = window.productosVenta[id].precio * window.productosVenta[id].cantidad;
+
+        console.log('Estado actualizado del producto:', window.productosVenta[id]);
+        
+        // Actualizar DOM
+        document.getElementById(`cantidad-${id}`).textContent = window.productosVenta[id].cantidad;
+        document.getElementById(`precio-${id}`).textContent = `$${window.productosVenta[id].subtotal}`;
+        
+        window.hayModificaciones = true;
+        actualizarTotales();
+        
+    }
+    
+    function disminuirCantidad(id, nombre, precio) {
+        if (!window.productosVenta[id]) return;
+        
+        window.productosVenta[id].cantidad--;
+        
+        if (window.productosVenta[id].cantidad <= 0) {
+            eliminarProducto(id);
+            return;
+        }
+        
+        window.productosVenta[id].subtotal = window.productosVenta[id].precio * window.productosVenta[id].cantidad;
+        
+        // Actualizar DOM
+        document.getElementById(`cantidad-${id}`).textContent = window.productosVenta[id].cantidad;
+        document.getElementById(`precio-${id}`).textContent = `$${window.productosVenta[id].subtotal}`;
+        
+        window.hayModificaciones = true;
+        actualizarTotales();
+        
+    }
+    
+    function eliminarProducto(id) {
+        if (!window.productosVenta[id]) return;
+        
+        // Confirmar eliminación
+        if (!confirm(`¿Eliminar "${window.productosVenta[id].nombre}" del pedido?`)) {
+            return;
+        }
+        
+        // Eliminar del DOM
+        const elemento = document.getElementById(`producto-${id}`);
+        if (elemento) {
+            elemento.remove();
+        }
+        
+        // Eliminar del objeto
+        delete window.productosVenta[id];
+        
+        window.hayModificaciones = true;
+        actualizarTotales();
+        
+    }
+    
+    function actualizarTotales() {
+        let subtotal = 0;
+        
+        // Calcular subtotal
+        Object.values(window.productosVenta).forEach(item => {
+            subtotal += item.subtotal;
+        });
+        
+        // Envío (solo si hay productos)
+        const envio = Object.keys(window.productosVenta).length > 0 ? envioFijo : 0;
+        
+        // Total
+        const total = subtotal + envio;
+        
+        // Actualizar DOM
+        document.getElementById('subtotal').textContent = subtotal.toLocaleString();
+        document.getElementById('shipping').textContent = envio.toLocaleString();
+        document.getElementById('total').textContent = total.toLocaleString();
+        
+        // Mostrar/ocultar el botón guardar según haya cambios
+        const btnGuardar = document.getElementById('btn-guardar-cambios');
+        if (window.hayModificaciones) {
+            btnGuardar.style.display = 'inline-block';
+        } else {
+            btnGuardar.style.display = 'none';
+        }
+    }
+    
+    function guardarCambios() {
+        if (!hayModificaciones) return;
+        
+        // Preparar datos para enviar al servidor
+        const productosActualizados = Object.values(window.productosVenta).map(item => ({
+            id: item.id,
+            cantidad: item.cantidad,
+            precio: item.precio
+        }));
+        
+        // Mostrar indicador de carga
+        document.getElementById('btn-guardar-cambios').innerHTML = 
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+        document.getElementById('btn-guardar-cambios').disabled = true;
+        
+        // Enviar datos al servidor
+        fetch('/pruebas/actualizar_venta/{{ venta.id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                productos: productosActualizados
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                alert('Cambios guardados exitosamente');
+                hayModificaciones = false;
+                document.getElementById('btn-guardar-cambios').innerHTML = 'Guardar Cambios';
+                document.getElementById('btn-guardar-cambios').disabled = true;
+            } else {
+                // Mostrar error
+                alert('Error al guardar cambios: ' + data.message);
+                document.getElementById('btn-guardar-cambios').innerHTML = 'Guardar Cambios';
+                document.getElementById('btn-guardar-cambios').disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al comunicarse con el servidor');
+            document.getElementById('btn-guardar-cambios').innerHTML = 'Guardar Cambios';
+            document.getElementById('btn-guardar-cambios').disabled = false;
+        });
+    }
+
+
+        inicializarProductos();
+        actualizarTotales();
+
+    
+    
+</script>

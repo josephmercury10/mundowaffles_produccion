@@ -1,0 +1,24 @@
+<!-- ventas/_partials/cliente_form_fields.html -->
+{% if cliente_encontrado %}
+<input type="hidden" name="cliente_id" value="{{ cliente_encontrado.id }}">
+<div class="col-md-6 mb-2">
+    {{ form.cliente.label(class="form-label") }}
+    <input class="form-control" name="cliente" value="{{ cliente_encontrado.persona.razon_social }}" readonly>
+</div>
+<div class="col-12 mb-2">
+    {{ form.direccion.label(class="form-label") }}
+    <input class="form-control" name="direccion" value="{{ cliente_encontrado.persona.direccion }}" readonly>
+</div>
+<div class="alert alert-success">Cliente encontrado</div>
+{% else %}
+<input type="hidden" name="es_nuevo_cliente" value="1">
+<div class="col-md-6 mb-2">
+    {{ form.cliente.label(class="form-label") }}
+    {{ form.cliente(class="form-control", placeholder="Nombre del nuevo cliente") }}
+</div>
+<div class="col-12 mb-2">
+    {{ form.direccion.label(class="form-label") }}
+    {{ form.direccion(class="form-control", placeholder="Dirección del cliente") }}
+</div>
+<div class="alert alert-info">Nuevo cliente</div>
+{% endif %}

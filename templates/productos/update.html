@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+<body>
+
+    <div class="main-container">
+
+        <div class="left-panel">
+            {% block left_panel %}
+            <h1>Nuevo producto</h1>
+            <div class="container w-100 border border-3 border-primary rounded p-4 mt-3">
+                <form action="" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <!-----------------------Código-------------------------------------------->
+                        <div class="col-md-6 mb-2" >
+                            {{ form.codigo.label(class="form-label") }}
+                            {{ form.codigo(class="form-control") }}
+                            {% for error in form.codigo.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Nombre-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.nombre.label(class="form-label") }}
+                            {{ form.nombre(class="form-control", rows="3") }}
+                            {% for error in form.nombre.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Descripción-------------------------------------------->
+                        <div class="col-12 mb-2">
+                            {{ form.descripcion.label(class="form-label") }}
+                            {{ form.descripcion(class="form-control", rows="3", style="resize: none;") }}
+                        </div>
+                        <!-----------------------Fecha de vencimiento-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.fechaVencimiento.label(class="form-label") }}
+                            {{ form.fechaVencimiento(class="form-control") }}
+                        </div>
+                        <!-----------------------Imagen-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.imagen.label(class="form-label") }}
+                            {{ form.imagen(class="form-control") }}
+                            {% for error in form.imagen.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-----------------------Marcas-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.marcas.label(class="form-label") }}
+                            {{ form.marcas(class="form-control") }}
+                        </div>
+                        <!-----------------------Presentaciones-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.presentaciones.label(class="form-label") }}
+                            {{ form.presentaciones(class="form-control", description="Seleccione una presentación") }}
+                        </div>
+                        <!-----------------------Categorías-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.categorias.label(class="form-label") }}
+                            <small class="text-muted d-block mb-2">Mantenga presionada la tecla Ctrl (Command en Mac) para seleccionar múltiples categorías</small>
+                            {{ form.categorias(class="form-control", multiple=True, size=5, title="Seleccione las categorías") }}
+                        </div>
+
+                        <div class="col-12 text-center">
+                            {{ form.submit(class="btn btn-primary") }}
+
+                            <div class="error-messages">
+                                {% for error in form.submit.error %}
+                                    <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {%endblock %}
+        </div>
+
+        <div class="right-panel">{% block right_panel %} {%endblock %}</div>
+    </div>
+</body>

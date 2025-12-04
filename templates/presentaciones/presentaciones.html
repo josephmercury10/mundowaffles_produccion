@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block left_panel %}
+<div class="container-fluid px-4">
+        <h1 class="mt-4 text-center">Marcas</h1>
+        <div class="mb-4">
+            <a href="{{ url_for('presentaciones.create_presentacion') }}">
+                <button type="button" class="btn btn-primary">Añadir nuevo registro</button>
+            </a>
+        </div>
+</div>
+
+<div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">nombre</th>
+            <th scope="col">Descripcion</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for presentacion in presentaciones %}
+          <tr>
+            <th scope="row">{{ presentacion.id}}</th>
+            <td>{{ presentacion.caracteristica.nombre }}</td>
+            <td>{{ presentacion.caracteristica.descripcion }}</td>
+            
+              {% if presentacion.caracteristica.estado %}
+              <td>
+                <div>
+                  <span class="badge bg-success">Activo</span>
+                </div>
+              </td>
+              {% else %}
+              <td>
+                <div>
+                  <span class="badge bg-danger">Eliminado</span>
+                </div>
+              </td>
+              {% endif %}
+            
+            <td>
+                <div class="btn-group" role="group" aria-label="Basic mixed styles example">
+                        <a href="{{ url_for('presentaciones.update_presentacion', id=presentacion.id) }}">
+                            <button type="button" class="btn btn-warning">Editar</button>
+                        </a>
+                        
+                        {% if presentacion.caracteristica.estado %}
+                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ presentacion.id }}">Eliminar</button>
+                        {% else %}
+                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ presentacion.id}}">Restaurar</button>
+                        {% endif %}
+                </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+{% endblock %}  
+
+{% block right_panel %}
+    <img src="https://img.freepik.com/premium-photo/pug-dog-breed-laughs-smiles-closeup-portrait-funny-photo-with-animal-pets_700453-4210.jpg" alt="" width="200" height="200">
+{% endblock %}

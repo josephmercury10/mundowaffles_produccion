@@ -1,0 +1,24 @@
+para crear un entorno de desarrollo:
+
+para cear -> virtualenv -p python3 [nombre entorno]
+
+para activar el entorno creado -> .\env\Scripts\activate (depende de la ruta)
+
+para desactivar un entorno -> deactivate
+
+---------------------------------------------------------------------------------------------
+
+comandos Python:
+
+para instalar paquetes -> pip install [Nombre del paquete]
+
+para ver la lista de paquetes instalados -> pip list
+
+para ver la versión de Python -> Python --version
+
+para exportar los requerimientos del entorno -> pip freeze > requierements.txt
+
+para importar requerimientos a un nuevo entorno -> pip install -r .\requierements.txt (depnde de la direccion del archivo) 
+
+para ejecutar la app : python nombre_archivo.py
+

@@ -1,0 +1,200 @@
+
+{% extends "base.html" %}
+
+<body>
+    <div class="main-container">
+        {% block left_panel %}
+        <div class="left-panel">
+            
+    <div class="nav-tabs">
+        <div class="nav-tab">Mesas</div>
+        <div class="nav-tab">Mostrador</div>
+        <div class="nav-tab active" >Delivery</div>
+        
+ 
+    </div>
+
+            <h1 style="font-size: 24px; margin-bottom: 24px; font-weight: 700;">DELIVERY</h1>
+
+            <div class="delivery-section">
+                <div class="section-header preparacion" onclick="toggleSection('preparacion')">
+                    <span class="section-toggle">⏷</span>
+                    <span class="section-title">EN PREPARACIÓN</span>
+                    <span class="section-count">0</span>
+                </div>
+                <div class="orders-table" id="preparacion-table">
+                    <div class="table-header preparacion">
+                        <div>ID</div>
+                        <div>Hora Inicio</div>
+                        <div>Dirección</div>
+                        <div>Teléfono</div>
+                        <div>Cliente</div>
+                        <div>Repartidor</div>
+                        <div>Tiempo</div>
+                        <div>Total</div>
+                    </div>
+                    <div class="table-body">
+                        No hay pedidos
+                    </div>
+                </div>
+                <button class="show-more-btn">Mostrar más resultados</button>
+            </div>
+            <div class="delivery-section">
+                <div class="section-header listo" onclick="toggleSection('listo')">
+                    <span class="section-toggle">⏷</span>
+                    <span class="section-title">LISTO PARA ENTREGAR</span>
+                    <span class="section-count">0</span>
+                </div>
+                <div class="orders-table" id="listo-table">
+                    <div class="table-header listo">
+                        <div>ID</div>
+                        <div>Hora Inicio</div>
+                        <div>Dirección</div>
+                        <div>Teléfono</div>
+                        <div>Cliente</div>
+                        <div>Repartidor</div>
+                        <div>Total</div>
+                    </div>
+                    <div class="table-body">
+                        No hay pedidos
+                    </div>
+                </div>
+                <button class="show-more-btn">Mostrar más resultados</button>
+            </div>
+
+            <div class="delivery-section">
+                <div class="section-header enviados" onclick="toggleSection('enviados')">
+                    <span class="section-toggle">⏷</span>
+                    <span class="section-title">ENVIADOS</span>
+                    <span class="section-count">0</span>
+                </div>
+                <div class="orders-table" id="enviados-table">
+                    <div class="table-header enviados">
+                        <div>ID</div>
+                        <div>Hora Inicio</div>
+                        <div>Dirección</div>
+                        <div>Teléfono</div>
+                        <div>Cliente</div>
+                        <div>Repartidor</div>
+                        <div>Total</div>
+                    </div>
+                    <div class="table-body">
+                        No hay pedidos enviados
+                    </div>
+                </div>
+                <button class="show-more-btn">Mostrar más resultados</button>
+            </div>
+        </div>
+        {% endblock %}
+        {% block right_panel %}
+        <div class="right-panel">
+            <div class="new-order-panel">
+                <div class="new-order-header">NUEVO PEDIDO</div>
+            </div>
+            <div class="new-order-form">
+                <div class="form-group">
+                    <label class="form-label">Teléfono *</label>
+                    <input type="tel" class="form-input" placeholder="">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Cliente *</label>
+                    <input type="text" class="form-input" placeholder="">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Dirección *</label>
+                    <input type="text" class="form-input" placeholder="Calle">
+                    <div class="form-row" style="margin-top: 8px;">
+                        <input type="text" class="form-input" placeholder="Número">
+                        <input type="text" class="form-input" placeholder="Piso / Depto">
+                    </div>
+                    <input type="text" class="form-input" placeholder="Barrio" style="margin-top: 8px;">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Repartidor</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar repartidor</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tiempo estimado</label>
+                    <select class="form-select">
+                        <option value="">Seleccionar tiempo</option>
+                        <option value="30">30 minutos</option>
+                        <option value="45">45 minutos</option>
+                        <option value="60">1 hora</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Costo de envío</label>
+                    <input type="number" class="form-input" placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" placeholder="Comentarios adicionales"></textarea>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox" id="save-client">
+                    <label for="save-client" style="color: #333; font-size: 14px;">Guardar cliente</label>
+                </div>
+                
+                <button class="submit-btn">CREAR</button>
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+
+    <script>
+        function toggleSection(sectionId) {
+            const table = document.getElementById(sectionId + '-table');
+            const toggle = document.querySelector(`#${sectionId}-table`).previousElementSibling.querySelector('.section-toggle');
+            
+            if (table.style.display === 'none') {
+                table.style.display = 'block';
+                toggle.textContent = '⏷';
+            } else {
+                table.style.display = 'none';
+                toggle.textContent = '⏵';
+            }
+        }
+
+        // Funcionalidad del formulario
+        document.querySelector('.submit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const telefono = document.querySelector('input[type="tel"]').value;
+            const cliente = document.querySelector('input[type="text"]').value;
+            
+            if (!telefono || !cliente) {
+                alert('Por favor, complete los campos obligatorios');
+                return;
+            }
+            
+            // Simular creación de pedido
+            alert('Pedido creado exitosamente');
+            
+            // Limpiar formulario
+            document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(input => {
+                input.value = '';
+            });
+            document.querySelector('.checkbox').checked = false;
+        });
+
+        // Funcionalidad de pestañas
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+        
+</body>
+
+

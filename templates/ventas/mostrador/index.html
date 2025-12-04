@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+<body>
+    {% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/delivery.css') }}">
+    <style>
+        .dropdown-menu.show {
+            display: block;
+        }
+    </style>
+    {% endblock %}
+    
+    <div class="main-container">
+        {% block left_panel %}            
+            <div class="nav-tabs">
+                <div class="nav-tab">Mesas</div>
+                <div class="nav-tab active">Mostrador</div>
+                <a href="{{ url_for('delivery.getDeliveries') }}" class="nav-tab">Delivery</a>
+                <div class="nuevo-pedido-btn">
+                    <button class="btn btn-success" 
+                            hx-get="/mostrador/nuevo_pedido" 
+                            hx-target="#right_panel" 
+                            hx-swap="innerHTML">
+                        Nuevo Pedido
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de Pedidos en Preparación -->
+            <div class="delivery-section">
+                <div class="section-header pendientes">
+                    <h3>En Preparación</h3>
+                </div>
+                <table id="preparacion-table" class="table table-hover" 
+                       hx-get="/mostrador/pedidos_estado/1" 
+                       hx-trigger="load, refresh-preparacion from:body, every 30s"
+                       hx-target="#preparacion-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Items</th>
+                            <th>Tiempo</th>
+                            <th>Estado de pago</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preparacion-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de Pedidos Listos -->
+            <div class="delivery-section">
+                <div class="section-header enviados">
+                    <h3>Listos</h3>
+                </div>
+                <table id="listos-table" class="table table-hover" 
+                       hx-get="/mostrador/pedidos_estado/2" 
+                       hx-trigger="load, refresh-listos from:body, every 30s"
+                       hx-target="#listos-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-info">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Items</th>
+                            <th>Tiempo</th>
+                            <th>Estado de pago</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listos-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de Pedidos Pagados -->
+            <div class="delivery-section">
+                <div class="section-header entregados">
+                    <h3>Pagados</h3>
+                </div>
+                <table id="pagados-table" class="table table-hover" 
+                       hx-get="/mostrador/pedidos_estado/3" 
+                       hx-trigger="load, refresh-pagados from:body, every 60s"
+                       hx-target="#pagados-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-success">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Items</th>
+                            <th>Comprobante</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pagados-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+        {% endblock %}
+        
+        {% block right_panel %}
+            <div id="right_panel">
+                <div class="new-order-panel">
+                    <div class="new-order-header">SELECCIONA UNA OPCIÓN</div>
+                    <p class="text-center mt-3">Haz clic en "Nuevo Pedido" para comenzar o selecciona un pedido de la lista para ver detalles.</p>
+                </div>
+            </div>
+        {% endblock %}
+    </div>
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}
+
+</body>

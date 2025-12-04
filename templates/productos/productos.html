@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+<body>
+    {% block left_panel %}
+    <div class="container-fluid px-4">
+        <h1 class="mt-4 text-center">Productos</h1>
+        <ol class="breadcrumb mb-4">
+            <li class="breadcrumb-item active"><a href="#">Inicio</a></li>
+            <li class="breadcrumb-item active">Productos</li>
+        </ol>
+        <div class="mb-4">
+            <a href="{{ url_for('productos.create_producto') }}">
+                <button type="button" class="btn btn-primary">Añadir nuevo registro</button>
+            </a>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-table me-1"></i>
+                Tabla Productos
+            </div>
+        </div>
+
+        <div class="card-body">
+            <table id="datatablesSimple" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Marca</th>
+                        <th>Presentación</th>
+                        <th>Categorías</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.codigo }}</td>
+                        <td>{{ producto.nombre }}</td>
+                        <td>{{ producto.marca.caracteristica.nombre }}</td>
+                        <td>{{ producto.presentacion.caracteristica.nombre }}</td>
+                        <td>
+                            {% for categoria_producto in producto.categorias %}
+                                <span class="badge bg-secondary">{{ categoria_producto.categoria.caracteristica.nombre }}</span>
+                            {% endfor %}
+                        </td>
+                        {% if producto.estado %}
+                        <td>
+                            <div>
+                                <span class="badge bg-success">Activo</span>
+                            </div>
+                        </td>
+                        {% else %}
+                        <td>
+                            <div>
+                                <span class="badge bg-danger">Eliminado</span>
+                            </div>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <div class="btn-group" role="group" aria-label="Basic mixed styles example">
+                                <a href="{{ url_for('productos.update_producto', id=producto.id) }}">
+                                    <button type="button" class="btn btn-warning">Editar</button>
+                                </a>
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#verModal-{{ producto.id }}">Ver</button>
+
+                                {% if producto.estado %}
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ producto.id }}">Eliminar</button>
+                                {% else %}
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ producto.id }}">Restaurar</button>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modales de visualización -->
+        {% for producto in productos %}
+<div class="modal fade" id="verModal-{{ producto.id }}" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Datos de: {{ producto.nombre }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+    {% endfor %}
+
+    <!-- Modales de confirmación -->
+{% for producto in productos %}
+<div class="modal fade" id="confirmModal-{{ producto.id }}" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">
+                    {% if producto.estado %}
+                    Confirmar Eliminación
+                    {% else %}
+                    Confirmar Restauración
+                    {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if producto.estado %}
+                ¿Estás seguro de que deseas eliminar el producto "{{ producto.nombre }}"?
+                {% else %}
+                ¿Estás seguro de que deseas restaurar el producto "{{ producto.nombre }}"?
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('productos.delete_producto', id=producto.id) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn {% if producto.estado %}btn-danger{% else %}btn-success{% endif %}">
+                        {% if producto.estado %}
+                        Eliminar
+                        {% else %}
+                        Restaurar
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+</div>
+    </div>
+    {% endblock %}
+
+    {% block right_panel %}
+    {% endblock %}
+</body>

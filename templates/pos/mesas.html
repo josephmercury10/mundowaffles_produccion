@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/mesas.css">
+    <title>FUDO - Mesas</title>
+
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">FUDO</div>
+            <div class="nav-icons">
+                <div class="nav-icon">📊</div>
+                <div class="nav-icon">🧮</div>
+                <div class="nav-icon">🔍</div>
+                <div class="nav-icon">📋</div>
+                <div class="nav-icon">👤</div>
+                <div class="nav-icon">🚚</div>
+                <div class="nav-icon">📄</div>
+                <div class="nav-icon">💰</div>
+                <div class="nav-icon">📺</div>
+                <div class="nav-icon">📱</div>
+                <div class="nav-icon">⚙️</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <span>MARTES 19 AGO. 16:41</span>
+            <div class="pro-badge">PRO</div>
+            <span>el caballito de palo admin</span>
+            <div class="nav-icon">✉️</div>
+            <div class="nav-icon">❓</div>
+        </div>
+    </div>
+
+    <div class="blue-banner">
+        Estás probando gratis el PLAN PRO. Al momento de pagar para seguir usando el sistema, podrás elegir el plan que mejor se acomode a tu negocio.
+    </div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active">Mesas</div>
+        <div class="nav-tab">Mostrador</div>
+        <div class="nav-tab" onclick="window.location.href='{{ url_for('delivery') }}'">Delivery</div>
+        
+        <div class="search-section">
+            <input type="text" class="search-input" placeholder="Ir a mesa">
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="area-tabs">
+                <button class="area-tab active" onclick="selectArea('salon')">Salon</button>
+                <button class="area-tab" onclick="selectArea('terraza')">Terraza</button>
+            </div>
+
+            <div class="tables-grid" id="tables-grid">
+                <!-- Mesa 1 -->
+                <div class="table-item square" data-mesa="1" onclick="selectTable(1)">
+                    <span>1</span>
+                </div>
+                <!-- Mesa 2 - Seleccionada -->
+                <div class="table-item square selected" data-mesa="2" onclick="selectTable(2)">
+                    <span>2</span>
+                </div>
+                <!-- Mesas vacías -->
+                <div class="table-item square" data-mesa="3" onclick="selectTable(3)">
+                    <span>3</span>
+                </div>
+                <div class="table-item square" data-mesa="4" onclick="selectTable(4)">
+                    <span>4</span>
+                </div>
+                <div class="table-item square" data-mesa="5" onclick="selectTable(5)">
+                    <span>5</span>
+                </div>
+                <div class="table-item square" data-mesa="6" onclick="selectTable(6)">
+                    <span>6</span>
+                </div>
+                <div class="table-item square" data-mesa="7" onclick="selectTable(7)">
+                    <span>7</span>
+                </div>
+                <div class="table-item square" data-mesa="8" onclick="selectTable(8)">
+                    <span>8</span>
+                </div>
+                <!-- Mesas redondas -->
+                <div class="table-item round" data-mesa="9" onclick="selectTable(9)">
+                    <span>9</span>
+                </div>
+                <div class="table-item round" data-mesa="10" onclick="selectTable(10)">
+                    <span>10</span>
+                </div>
+                <div class="table-item round" data-mesa="11" onclick="selectTable(11)">
+                    <span>11</span>
+                </div>
+                <div class="table-item round" data-mesa="12" onclick="selectTable(12)">
+                    <span>12</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="mesa-header" id="mesa-header">
+                MESA 2
+            </div>
+            
+            <div class="mesa-controls">
+                <button class="menu-btn">☰</button>
+            </div>
+
+            <div class="mesa-form">
+                <div class="form-group">
+                    <label class="form-label">Personas *</label>
+                    <div class="number-input-group">
+                        <button class="number-btn" onclick="adjustPersonas(-1)">-</button>
+                        <input type="number" class="number-input" id="personas" value="1" min="1" max="20">
+                        <button class="number-btn" onclick="adjustPersonas(1)">+</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Etiqueta de venta</label>
+                    <select class="form-select" id="etiqueta-venta">
+                        <option value="">Seleccionar etiqueta</option>
+                        <option value="almuerzo">Almuerzo</option>
+                        <option value="cena">Cena</option>
+                        <option value="desayuno">Desayuno</option>
+                        <option value="merienda">Merienda</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Cliente</label>
+                    <select class="form-select" id="cliente">
+                        <option value="">Seleccionar cliente</option>
+                        <option value="walk-in">Walk-in</option>
+                        <option value="cliente1">Juan Pérez</option>
+                        <option value="cliente2">María García</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Garzón</label>
+                    <select class="form-select" id="garzon">
+                        <option value="">Seleccionar garzón</option>
+                        <option value="garzon1">Pedro López</option>
+                        <option value="garzon2">Ana Martínez</option>
+                        <option value="garzon3">Carlos Rodríguez</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Comentario</label>
+                    <textarea class="form-textarea" id="comentario" placeholder="Comentarios adicionales"></textarea>
+                </div>
+                
+                <button class="submit-btn" onclick="abrirMesa()">ABRIR MESA</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="floating-button">
+        ☰
+        <div class="floating-counter">2</div>
+    </button>
+
+    <script>
+        let selectedTable = 2;
+
+        function selectArea(area) {
+            // Cambiar pestaña activa
+            document.querySelectorAll('.area-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Aquí se podría cambiar el layout de mesas según el área
+            console.log('Área seleccionada:', area);
+        }
+
+        function selectTable(tableNumber) {
+            // Quitar selección anterior
+            document.querySelectorAll('.table-item').forEach(table => {
+                table.classList.remove('selected');
+            });
+            
+            // Seleccionar nueva mesa
+            const selectedTableElement = document.querySelector(`[data-mesa="${tableNumber}"]`);
+            selectedTableElement.classList.add('selected');
+            
+            // Actualizar header
+            document.getElementById('mesa-header').textContent = `MESA ${tableNumber}`;
+            
+            selectedTable = tableNumber;
+            
+            // Limpiar formulario para nueva mesa
+            resetForm();
+        }
+
+        function adjustPersonas(delta) {
+            const input = document.getElementById('personas');
+            let value = parseInt(input.value) + delta;
+            if (value < 1) value = 1;
+            if (value > 20) value = 20;
+            input.value = value;
+        }
+
+        function resetForm() {
+            document.getElementById('personas').value = 1;
+            document.getElementById('etiqueta-venta').value = '';
+            document.getElementById('cliente').value = '';
+            document.getElementById('garzon').value = '';
+            document.getElementById('comentario').value = '';
+        }
+
+        function abrirMesa() {
+            const personas = document.getElementById('personas').value;
+            const etiqueta = document.getElementById('etiqueta-venta').value;
+            const cliente = document.getElementById('cliente').value;
+            const garzon = document.getElementById('garzon').value;
+            const comentario = document.getElementById('comentario').value;
+            
+            if (!personas || personas < 1) {
+                alert('Por favor, especifique el número de personas');
+                return;
+            }
+            
+            // Simular apertura de mesa
+            const mesaData = {
+                mesa: selectedTable,
+                personas: parseInt(personas),
+                etiqueta,
+                cliente,
+                garzon,
+                comentario,
+                hora_apertura: new Date().toISOString()
+            };
+            
+            console.log('Abriendo mesa:', mesaData);
+            alert(`Mesa ${selectedTable} abierta para ${personas} persona(s)`);
+            
+            // Cambiar color de la mesa para indicar que está ocupada
+            const tableElement = document.querySelector(`[data-mesa="${selectedTable}"]`);
+            tableElement.style.background = '#ff6b35'; // Color naranja para mesa ocupada
+            
+            // Limpiar formulario
+            resetForm();
+        }
+
+        // Navegación entre pestañas principales
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                if (this.textContent === 'Delivery') {
+                    // Aquí se podría navegar al módulo delivery
+                    console.log('Cambiar a módulo Delivery');
+                } else if (this.textContent === 'Mostrador') {
+                    console.log('Cambiar a módulo Mostrador');
+                }
+            });
+        });
+
+        // Búsqueda de mesa
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const mesaNumber = parseInt(this.value);
+                if (mesaNumber >= 1 && mesaNumber <= 12) {
+                    selectTable(mesaNumber);
+                    this.value = '';
+                } else {
+                    alert('Mesa no encontrada');
+                }
+            }
+        });
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Módulo de Mesas cargado');
+        });
+    </script>
+</body>
+</html>

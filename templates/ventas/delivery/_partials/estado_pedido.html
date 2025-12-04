@@ -1,0 +1,96 @@
+<div class="estado-actual">
+    {% set esta_pagado = pedido.comprobante_id is not none %}
+    
+    <!-- Alerta de error si intentó enviar sin pagar -->
+    {% if error_pago %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>⚠️ Atención:</strong> {{ error_pago }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    
+    <!-- Alerta de pago exitoso -->
+    {% if pago_exitoso %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>✅ Pago Confirmado:</strong> {{ comprobante.tipo_comprobante if comprobante else 'Boleta' }} - {{ pedido.numero_comprobante }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Barra de progreso compacta -->
+    <div class="d-flex justify-content-center align-items-center gap-1 mb-2" style="flex-wrap: nowrap;">
+        <div class="text-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto {{ 'bg-warning' if pedido.estado_delivery == 1 else 'bg-success text-white' }}" style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">
+                {{ '✓' if pedido.estado_delivery > 1 else '1' }}
+            </div>
+            <small class="d-block" style="font-size: 10px;">Preparación</small>
+        </div>
+        <div style="width: 20px; height: 3px;" class="{{ 'bg-success' if pedido.estado_delivery >= 2 else 'bg-secondary' }}"></div>
+        <div class="text-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto {{ 'bg-warning' if pedido.estado_delivery == 2 else 'bg-success text-white' if pedido.estado_delivery > 2 else 'bg-light border' }}" style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">
+                {{ '✓' if pedido.estado_delivery > 2 else '2' }}
+            </div>
+            <small class="d-block" style="font-size: 10px;">En Camino</small>
+        </div>
+        <div style="width: 20px; height: 3px;" class="{{ 'bg-success' if pedido.estado_delivery >= 3 else 'bg-secondary' }}"></div>
+        <div class="text-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto {{ 'bg-success text-white' if pedido.estado_delivery == 3 else 'bg-light border' }}" style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">
+                {{ '✓' if pedido.estado_delivery == 3 else '3' }}
+            </div>
+            <small class="d-block" style="font-size: 10px;">Entregado</small>
+        </div>
+    </div>
+
+    <!-- Indicador de estado de pago -->
+    <div class="mb-3 text-center">
+        {% if esta_pagado %}
+            <span class="badge bg-success px-2 py-1" style="font-size: 11px;">
+                💰 PAGADO - {{ pedido.numero_comprobante }}
+            </span>
+        {% else %}
+            <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 11px;">
+                ⏳ PENDIENTE DE PAGO
+            </span>
+        {% endif %}
+    </div>
+
+    <!-- Botones de acción -->
+    {% if pedido.estado_delivery == 1 %}
+        {% if not esta_pagado %}
+            <button class="btn btn-primary w-100 mb-2" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#modalPagoDelivery">
+                💵 Cobrar Pedido
+            </button>
+            <button class="btn btn-outline-warning btn-sm w-100" disabled>
+                🚚 Enviar (Requiere pago)
+            </button>
+        {% else %}
+            <button class="btn btn-warning w-100"
+                    hx-post="/delivery/cambiar_estado/{{ pedido.id }}/2"
+                    hx-target="#estado-pedido-container"
+                    hx-swap="innerHTML">
+                🚚 Marcar como En Camino
+            </button>
+        {% endif %}
+        
+    {% elif pedido.estado_delivery == 2 %}
+        <button class="btn btn-success w-100"
+                hx-post="/delivery/cambiar_estado/{{ pedido.id }}/3"
+                hx-target="#estado-pedido-container"
+                hx-swap="innerHTML">
+            ✅ Marcar como Entregado
+        </button>
+        
+    {% elif pedido.estado_delivery == 3 %}
+        <div class="alert alert-success text-center mb-2 py-2">
+            <strong>✅ Pedido Entregado</strong><br>
+            <small>{{ pedido.numero_comprobante }}</small>
+        </div>
+        <button class="btn btn-outline-primary btn-sm w-100"
+                hx-post="/delivery/imprimir_pedido/{{ pedido.id }}"
+                hx-swap="none">
+            🖨️ Reimprimir
+        </button>
+    {% endif %}
+</div>

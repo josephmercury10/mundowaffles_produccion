@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+<body>
+  <div class="main-container">
+    {% block left_panel %}
+    <div class="container-fluid px-4">
+        <h1 class="mt-4 text-center">Marcas</h1>
+        <div class="mb-4">
+            <a href="{{ url_for('marcas.create_marca') }}">
+                <button type="button" class="btn btn-primary">Añadir nuevo registro</button>
+            </a>
+        </div>
+    </div>
+    
+    
+    <div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">nombre</th>
+            <th scope="col">Descripcion</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for marca in marcas %}
+          <tr>
+            <th scope="row">{{ marca.id}}</th>
+            <td>{{ marca.caracteristica.nombre }}</td>
+            <td>{{ marca.caracteristica.descripcion }}</td>
+            
+              {% if marca.caracteristica.estado %}
+              <td>
+                <div>
+                  <span class="badge bg-success">Activo</span>
+                </div>
+              </td>
+              {% else %}
+              <td>
+                <div>
+                  <span class="badge bg-danger">Eliminado</span>
+                </div>
+              </td>
+              {% endif %}
+            
+            <td>
+                <div class="btn-group" role="group" aria-label="Basic mixed styles example">
+                        <a href="{{ url_for('marcas.update_marca', id=marca.id) }}">
+                            <button type="button" class="btn btn-warning">Editar</button>
+                        </a>
+                        
+                        {% if marca.caracteristica.estado %}
+                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ marca.id }}">Eliminar</button>
+                        {% else %}
+                     <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmModal-{{ marca.id}}">Restaurar</button>
+                        {% endif %}
+                </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modales de confirmación -->
+{% for marca in marcas %}
+<div class="modal fade" id="confirmModal-{{ marca.id }}" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">
+                    {% if marca.caracteristica.estado %}
+                    Confirmar Eliminación
+                    {% else %}
+                    Confirmar Restauración
+                    {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if marca.caracteristica.estado %}
+                ¿Estás seguro de que deseas eliminar la marca "{{ marca.caracteristica.nombre }}"?
+                {% else %}
+                ¿Estás seguro de que deseas restaurar la marca "{{ marca.caracteristica.nombre }}"?
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('marcas.delete_marca', id=marca.id) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn {% if marca.caracteristica.estado %}btn-danger{% else %}btn-success{% endif %}">
+                        {% if marca.caracteristica.estado %}
+                        Eliminar
+                        {% else %}
+                        Restaurar
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+    {% endblock %} 
+    
+    {% block right_panel %}
+    <h1>holaaaa</h1>
+    {% endblock %}
+  </div>
+</body>

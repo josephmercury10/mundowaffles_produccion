@@ -1,0 +1,63 @@
+{% if clientes %}
+    {% for cliente in clientes %}
+        <a class="dropdown-item" 
+           href="#" 
+           onclick="seleccionarClientePorTelefono('{{ cliente.id }}', '{{ cliente.persona.razon_social }}', '{{ cliente.persona.telefono }}', '{{ cliente.persona.direccion }}'); return false;">
+            {{ cliente.persona.telefono }} - {{ cliente.persona.razon_social }}
+        </a>
+    {% endfor %}
+    <div class="dropdown-divider"></div>
+{% endif %}
+
+<a class="dropdown-item text-primary" href="#" onclick="crearNuevoClientePorTelefono('{{ query }}'); return false;">
+    <i class="fas fa-plus-circle"></i> Crear nuevo cliente con teléfono "{{ query }}"
+</a>
+
+<script>
+function seleccionarClientePorTelefono(id, nombre, telefono, direccion) {
+    document.getElementById('cliente').value = nombre;
+    document.getElementById('telefono').value = telefono;
+    document.getElementById('cliente_id').value = id;
+    document.getElementById('es_nuevo_cliente').value = '0';
+    document.getElementById('direccion').value = direccion || '';
+    document.getElementById('resultados-clientes').classList.remove('show');
+    
+    // Opcional: resaltar los campos que se llenaron automáticamente
+    document.getElementById('cliente').classList.add('bg-light');
+    document.getElementById('direccion').classList.add('bg-light');
+    
+    setTimeout(() => {
+        document.getElementById('cliente').classList.remove('bg-light');
+        document.getElementById('direccion').classList.remove('bg-light');
+    }, 1000);
+}
+
+function crearNuevoClientePorTelefono(telefono) {
+    document.getElementById('telefono').value = telefono;
+    document.getElementById('cliente_id').value = '';
+    document.getElementById('es_nuevo_cliente').value = '1';
+    document.getElementById('resultados-clientes').classList.remove('show');
+    
+    // Enfocar el campo de nombre para facilitar la entrada de datos
+    document.getElementById('cliente').focus();
+}
+
+document.addEventListener('click', function(e) {
+    const resultados = document.getElementById('resultados-clientes');
+    const input = document.getElementById('telefono');
+
+    if (resultados && !resultados.contains(e.target) && e.target !== input) {
+        resultados.classList.remove('show');
+    }
+});
+
+
+// Mostrar el dropdown cuando aparecen resultados
+document.addEventListener('htmx:afterSettle', function() {
+    const resultados = document.getElementById('resultados-clientes');
+    if (resultados && resultados.innerHTML.trim() !== '') {
+        resultados.classList.add('show');
+    }
+});
+
+</script>

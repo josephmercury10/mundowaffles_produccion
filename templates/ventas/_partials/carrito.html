@@ -1,0 +1,106 @@
+<div class="products-header">
+    <div class="order-summary">
+        <input type="hidden" id="cliente-id" value="{{ cliente.id if cliente else '' }}">
+        <input type="hidden" id="costo-envio" value="{{ costo_envio }}">
+        <input type="hidden" id="tiempo-estimado" value="{{ tiempo_estimado }}">
+        <input type="hidden" id="comentarios" value="{{ comentarios }}">
+        <input type="hidden" id="repartidor" value="{{ repartidor }}">
+        <span>ID: <strong id="client-id">{{ cliente.id if cliente else '' }}</strong></span><br>
+        <span>Cliente: <strong id="client-name">{{ cliente.nombre if cliente else form.cliente.data }}</strong></span><br>
+        <span>Teléfono: <strong id="client-phone">{{ cliente.telefono if cliente else form.telefono.data }}</strong></span><br>
+        <span>Dirección: <strong id="client-address">{{ cliente.direccion if cliente else form.direccion.data }}</strong></span>
+    </div>
+</div>
+<div class="container text-center">
+    <div class="row">
+        <div class="col">
+            <h2>agregar</h2>
+        </div>
+    </div>
+</div>
+<!-- Lista de productos disponibles -->
+{% for producto in productos %}
+<button type="button"
+        class="btn btn-secondary m-1"
+        onclick="agregarAlCarrito('{{ producto.id }}', '{{ producto.nombre }}', '{{ producto.precio }}')"
+        >{{ producto.nombre }}
+</button>
+{% endfor %}
+
+<div class="order-items">
+    <div id="productos-seleccionados" class="selected-products">
+        <!-- Lista de productos seleccionados -->
+    </div>
+
+    <div id="acciones" style="margin-top:20px;">
+    </div>
+
+    <div class="order-total">
+        <div>Subtotal: $<span id="subtotal">0</span></div>
+        <div>Envío: $<span id="shipping">0</span></div>
+        <div>Total: $<span id="total">0</span></div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn btn-warning" disabled>Enviar</button>
+    </div>
+</div>
+
+<script>
+    // Función para agregar productos al carrito
+    function agregarAlCarrito(id, nombre, precio) {
+        // Verificar si el producto ya existe en el carrito
+        if (window.carritoItems && window.carritoItems[id]) {
+            // Si ya existe, incrementar su cantidad
+            window.carritoItems[id].cantidad++;
+            
+            // Actualizar la cantidad mostrada
+            const cantidadElement = document.getElementById(`cantidad-${id}`);
+            if (cantidadElement) {
+                cantidadElement.textContent = window.carritoItems[id].cantidad;
+                
+                // Actualizar precio
+                const precioElement = document.getElementById(`precio-${id}`);
+                if (precioElement) {
+                    precioElement.textContent = `$${(window.carritoItems[id].precio * window.carritoItems[id].cantidad).toLocaleString()}`;
+                }
+                
+                // Actualizar totales
+                actualizarTotalesCarrito();
+            }
+        } else {
+            // Si no existe, agregar usando HTMX
+            htmx.ajax('POST', '/pruebas/agregar_producto', {
+                target: '#productos-seleccionados',
+                swap: 'beforeend',
+                values: {
+                    id: id,
+                    nombre: nombre,
+                    precio: precio
+                }
+            });
+        }
+    }
+    
+    // Función global para actualizar totales
+    function actualizarTotalesCarrito() {
+        if (!window.carritoItems) return;
+        
+        // Calcular subtotal
+        let subtotal = 0;
+        Object.values(window.carritoItems).forEach(item => {
+            subtotal += item.precio * item.cantidad;
+        });
+        
+        // Envío fijo por ahora
+        const envio = Object.keys(window.carritoItems).length > 0 ? document.getElementById('costo-envio').value : 0;
+
+        // Total
+        const total = subtotal + envio;
+        
+        // Actualizar elementos en el DOM
+        document.getElementById('subtotal').textContent = subtotal.toLocaleString();
+        document.getElementById('shipping').textContent = envio.toLocaleString();
+        document.getElementById('total').textContent = total.toLocaleString();
+    }
+</script>

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+<body>
+    {% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/delivery.css') }}">
+    <style>
+            .dropdown-menu.show {
+                display: block;
+            }
+    </style>
+    {% endblock %}
+    <div class="main-container">
+        {% block left_panel %}            
+            <div class="nav-tabs">
+                <div class="nav-tab">Mesas</div>
+                <a href="{{ url_for('mostrador.index') }}" class="nav-tab">Mostrador</a>
+                <div class="nav-tab active">Delivery</div>
+                <div class="nuevo-pedido-btn">
+                    <button class="btn btn-success" 
+                            hx-get="/delivery/nuevo_delivery" 
+                            hx-target="#right_panel" 
+                            hx-swap="innerHTML">
+                        Nuevo Pedido
+                    </button>
+                </div>
+                
+            </div>
+
+            <!-- Tabla de Pendientes -->
+            <div class="delivery-section">
+                <div class="section-header pendientes">
+                    <h3>En Preparación</h3>
+                </div>
+                <table id="pendientes-table" class="table table-hover" 
+                       hx-get="/delivery/pedidos_estado/1" 
+                       hx-trigger="load, refresh-pendientes from:body, every 30s"
+                       hx-target="#pendientes-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-danger">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora inicio</th>
+                            <th>Dirección</th>
+                            <th>Telefono</th>
+                            <th>Cliente</th>
+                            <th>Repartidor</th>
+                            <th>Tiempo</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendientes-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de Enviados -->
+            <div class="delivery-section">
+                <div class="section-header enviados">
+                    <h3>Enviados</h3>
+                </div>
+                <table id="enviados-table" class="table table-hover" 
+                       hx-get="/delivery/pedidos_estado/2" 
+                       hx-trigger="load, refresh-enviados from:body, every 30s"
+                       hx-target="#enviados-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-warning">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora inicio</th>
+                            <th>Dirección</th>
+                            <th>Telefono</th>
+                            <th>Cliente</th>
+                            <th>Repartidor</th>
+                            <th>Tiempo</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="enviados-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabla de Entregados -->
+            <div class="delivery-section">
+                <div class="section-header entregados">
+                    <h3>Entregados</h3>
+                </div>
+                <table id="entregados-table" class="table table-hover" 
+                       hx-get="/delivery/pedidos_estado/3" 
+                       hx-trigger="load, refresh-entregados from:body, every 60s"
+                       hx-target="#entregados-table-body" 
+                       hx-swap="innerHTML">
+                    <thead class="table-success">
+                        <tr>
+                            <th>ID</th>
+                            <th>Hora inicio</th>
+                            <th>Dirección</th>
+                            <th>Telefono</th>
+                            <th>Cliente</th>
+                            <th>Repartidor</th>
+                            <th>Tiempo</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="entregados-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+        {% endblock %}
+        {% block right_panel %}
+                <div id="right_panel">
+            <div class="new-order-panel">
+                <div class="new-order-header">SELECCIONA UNA OPCIÓN</div>
+                <p class="text-center mt-3">Haz clic en "Nuevo Pedido" para comenzar o selecciona un pedido de la lista para ver detalles.</p>
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+
+    <!-- Agregar al final del archivo index.html, antes de </body> -->
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}
+
+</body>

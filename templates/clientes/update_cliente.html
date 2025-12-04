@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+<body>
+    <div class="main-container">
+            {% block left_panel %}
+            <div class="container w-100 border border-3 border-primary rounded p-4 mt-3">
+                <form action="" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <!-----------------------Tipo persona-------------------------------------------->
+                        <div class="col-md-6 mb-2" >
+                            {{ form.tipo_persona.label(class="form-label") }}
+                            {{ form.tipo_persona(class="form-control", onchange="updateLabel(this.value)") }}
+                            {% for error in form.tipo_persona.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Razon Social-------------------------------------------->
+                        <div class="col-md-12 mb-2">
+                            {{ form.razon_social.label(class="form-label", id="razon_social_label") }}
+                            {{ form.razon_social(class="form-control") }}
+                            {% for error in form.razon_social.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Dirección-------------------------------------------->
+                        <div class="col-md-12 mb-2">
+                            {{ form.direccion.label(class="form-label") }}
+                            {{ form.direccion(class="form-control") }}
+                            {% for error in form.direccion.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Tipo de Documento------------------------------------>
+                        <div class="col-md-6 mb-2">
+                            {{ form.documento_id.label(class="form-label") }}
+                            {{ form.documento_id(class="form-control", onchange="updateDocumentoValidation(this.value)") }}
+                            {% for error in form.documento_id.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------numero de documento-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.numero_documento.label(class="form-label") }}
+                            {{ form.numero_documento(
+                                class="form-control",
+                                id="numero_documento",
+                                pattern="",
+                                title="Formato inválido",
+                                value=form.numero_documento.data if form.numero_documento.data else ""
+                            ) }}
+                            <small id="documento_help" class="form-text text-muted"></small>
+                            {% for error in form.numero_documento.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                            </div>
+                        <!-----------------------boton-------------------------------------------->
+                        <div class="col-12 text-center">
+                            {{ form.submit(class="btn btn-primary") }}
+
+                            <div class="error-messages">
+                                {% for error in form.submit.errors %}
+                                    <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                <ul class="flashes">
+                                    {% for category, message in messages %}
+                                        <li class="{{ category }}">{{ message }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </form>
+            </div>
+
+            {% endblock %}
+
+    </div>
+
+    {% block scripts %}
+    <script>
+        function updateLabel(value) {
+            const label = document.getElementById('razon_social_label');
+            label.textContent = value === 'Persona Juridica' ? 'Nombre de la Empresa' : 'Nombres y Apellidos';
+        }
+        
+        // Inicializar el label cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const tipoPersona = document.querySelector('#tipo_persona');
+            if(tipoPersona) {
+                updateLabel(tipoPersona.value);
+            }
+        });
+
+        function updateDocumentoValidation(tipoDocumento) {
+        const numeroInput = document.getElementById('numero_documento');
+        const helpText = document.getElementById('documento_help');
+        
+        if (tipoDocumento === '1') {
+            // Patrón para RUT chileno: 12345678-9
+            numeroInput.pattern = '^\\d{7,8}-[\\dkK]$';
+            numeroInput.title = 'Formato RUT inválido. Ejemplo: 12345678-9';
+            helpText.textContent = 'Ingrese RUT sin puntos y con guión. Ejemplo: 12345678-9';
+            
+            // Agregar validación de RUT
+            numeroInput.addEventListener('input', function(e) {
+                let valor = e.target.value;
+                
+                // Permitir solo números, K y guión
+                valor = valor.replace(/[^0-9kK-]/g, '');
+                
+                // Asegurar que solo haya un guión
+                valor = valor.replace(/-/g, '');
+                if (valor.length > 7) {
+                    valor = valor.slice(0, -1) + '-' + valor.slice(-1);
+                }
+                
+                e.target.value = valor.toUpperCase();
+            });
+            
+        } else if (tipoDocumento === '2') {
+            // Patrón para pasaporte: alfanumérico de 6-12 caracteres
+            numeroInput.pattern = '^[A-Za-z0-9]{6,12}$';
+            numeroInput.title = 'El pasaporte debe tener entre 6 y 12 caracteres alfanuméricos';
+            helpText.textContent = 'Ingrese el número de pasaporte (6-12 caracteres)';
+            
+            // Agregar validación de pasaporte
+            numeroInput.addEventListener('input', function(e) {
+                let valor = e.target.value;
+                
+                // Permitir solo letras y números
+                valor = valor.replace(/[^A-Za-z0-9]/g, '');
+                
+                // Limitar longitud
+                if (valor.length > 12) {
+                    valor = valor.slice(0, 12);
+                }
+                
+                e.target.value = valor.toUpperCase();
+            });
+        }
+        
+        // Limpiar el campo cuando se cambia el tipo de documento
+        //numeroInput.value = '';
+    }
+
+    // Inicializar validación cuando se carga la página
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipoDocumento = document.querySelector('#documento_id');
+        if(tipoDocumento) {
+            updateDocumentoValidation(tipoDocumento.value);
+        }
+    });
+    </script>
+    {% endblock %}
+</body>

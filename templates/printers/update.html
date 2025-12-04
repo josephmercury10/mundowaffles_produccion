@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block right_panel %}
+<div class="p-3">
+  <h4>Editar Impresora</h4>
+  <form method="post" class="mt-3">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" value="{{ printer.nombre }}" required />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Driver (Windows)</label>
+        <input name="driver_name" class="form-control" value="{{ printer.driver_name }}" required />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Tipo (selecciona uno o más)</label>
+        {% set tipos_sel = printer.tipo|from_json if printer.tipo else [] %}
+        <div>
+          {% for t in ['ticket','comanda','factura','cocina'] %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="tipo" value="{{ t }}" id="tipo_{{ t }}" {% if t in tipos_sel %}checked{% endif %}>
+            <label class="form-check-label" for="tipo_{{ t }}">{{ t }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Perfil (selecciona uno o más)</label>
+        {% set perfiles_sel = printer.perfil|from_json if printer.perfil else [] %}
+        <div>
+          {% for p in ['general','delivery','mostrador','cocina'] %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perfil" value="{{ p }}" id="perfil_{{ p }}" {% if p in perfiles_sel %}checked{% endif %}>
+            <label class="form-check-label" for="perfil_{{ p }}">{{ p }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Ancho caracteres</label>
+        <input type="number" name="ancho_caracteres" class="form-control" value="{{ printer.ancho_caracteres }}" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Feed lines</label>
+        <input type="number" name="feed_lines" class="form-control" value="{{ printer.feed_lines }}" />
+      </div>
+      <div class="col-md-4 form-check align-self-end">
+        <input type="checkbox" name="cortar_papel" id="cortar_papel" class="form-check-input" {% if printer.cortar_papel %}checked{% endif %} />
+        <label for="cortar_papel" class="form-check-label">Cortar papel</label>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button class="btn btn-primary" type="submit">Guardar</button>
+      <a class="btn btn-secondary" href="{{ url_for('printers.index') }}">Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

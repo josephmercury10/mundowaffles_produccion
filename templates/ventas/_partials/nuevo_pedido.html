@@ -1,0 +1,125 @@
+<div class="new-order-panel">
+    <div class="new-order-header">NUEVO PEDIDO</div>
+</div>
+<div class="container w-100 border border-3 border-wa rounded p-4 mt-3">
+    <form id="cliente-form" hx-post="/pruebas/save" hx-swap="innerHTML">
+        {{ form.csrf_token }}
+        <div class="row g-3">
+            <!-----------------------Teléfono-------------------------------------------->
+            <div class="col-md-6 mb-2">
+                {{ form.telefono.label(class="form-label") }}
+                {{ form.telefono(
+                class="form-control",
+                id="telefono",
+                **{
+                'hx-post': '/pruebas/buscar_cliente_telefono',
+                'hx-trigger': 'keyup changed delay:300ms',
+                'hx-target': '#resultados-clientes',
+                'hx-indicator': '#indicador-busqueda'
+                }
+                ) }}
+
+                <div id="resultados-clientes" class="dropdown-menu" style="width:100%;"></div>
+                <div id="indicador-busqueda" class="htmx-indicator spinner-border spinner-border-sm text-primary"
+                    style="display:none; position:absolute; right:25px; top:38px;">
+                    <span class="visually-hidden">Buscando...</span>
+                </div>
+                <input type="hidden" name="cliente_id" id="cliente_id">
+                <input type="hidden" name="es_nuevo_cliente" id="es_nuevo_cliente" value="0">
+                {% for error in form.telefono.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-----------------------Cliente-------------------------------------------->
+            <div class="col-md-6 mb-2">
+                {{ form.cliente.label(class="form-label") }}
+                {{ form.cliente(class="form-control") }}
+                {% for error in form.cliente.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-----------------------Dirección-------------------------------------------->
+            <div class="col-12 mb-2">
+                {{ form.direccion.label(class="form-label") }}
+                {{ form.direccion(class="form-control", rows="3", style="resize: none;") }}
+                {% for error in form.direccion.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-----------------------Repartidor-------------------------------------------->
+            <div class="col-md-6 mb-2">
+                {{ form.repartidor.label(class="form-label") }}
+                {{ form.repartidor(class="form-control") }}
+            </div>
+
+            <!-----------------------Tiempo estimado-------------------------------------------->
+            <div class="col-md-6 mb-2">
+                {{ form.tiempo_estimado.label(class="form-label") }}
+                {{ form.tiempo_estimado(class="form-control") }}
+            </div>
+
+            <!-----------------------Costo de Envío-------------------------------------------->
+            <div class="col-md-6 mb-2">
+                {{ form.costo_envio.label(class="form-label") }}
+                {{ form.costo_envio(class="form-control") }}
+                {% for error in form.costo_envio.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-----------------------Comentarios-------------------------------------------->
+            <div class="col-12 mb-2">
+                {{ form.comentarios.label(class="form-label") }}
+                {{ form.comentarios(class="form-control", rows="3", style="resize: none;") }}
+                {% for error in form.comentarios.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <!-----------------------Botón Crear-------------------------------------------->
+            <div class="form-check col-md-6 mt-3">
+                <input class="form-check-input" type="checkbox" value="" id="checkDefault">
+                <label class="form-check-label" for="checkDefault">
+                    Guardar Cliente
+                </label>
+            </div>
+
+            <div class="col-md-6 mt-3 text-end">
+                {{ form.submit(class="btn btn-primary text-end") }}
+            </div>
+
+
+    </form>
+</div>
+
+<!-- Paso 2: Panel de productos -->
+<div class="step-panel" id="products-panel" style="display: none;">
+    <div class="products-header">
+
+    </div>
+
+    <div class="products-grid">
+        <div class="categories-list">
+            <!-- Se llenará dinámicamente -->
+        </div>
+
+        <div class="products-list">
+            <!-- Se llenará dinámicamente -->
+        </div>
+    </div>
+
+    <div class="order-items">
+        <div class="selected-products">
+            <!-- Lista de productos seleccionados -->
+        </div>
+
+        <div class="order-total">
+
+        </div>
+
+
+    </div>
+</div>

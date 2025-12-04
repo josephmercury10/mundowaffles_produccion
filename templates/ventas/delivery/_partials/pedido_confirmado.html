@@ -1,0 +1,11 @@
+<!-- ventas/_partials/pedido_confirmado.html -->
+<div class="alert alert-success text-center">
+    <h4>¡Pedido Guardado Exitosamente!</h4>
+    <p>Número de pedido: <strong>{{ venta_id }}</strong></p>
+    <button class="btn btn-primary" 
+            hx-get="/delivery/nuevo_pedido"
+            hx-target="#right_panel"
+            hx-swap="innerHTML">
+        Nuevo Pedido
+    </button>
+</div>

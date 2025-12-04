@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+<body>
+
+    <div class="main-container">
+
+        <div class="left-panel">
+            {% block left_panel %}
+            <h1>Nueva Categoria</h1>
+            <div class="container w-100 border border-3 border-primary rounded p-4 mt-3">
+                <form action="" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.nombre.label(class="form-label") }}
+                            {{ form.nombre(class="form-control") }}
+                        </div>
+
+                        <div>
+                            {{ form.descripcion.label(class="form-label") }}
+
+                            {{ form.descripcion(class="form-control", rows="3") }}
+
+                        </div>
+
+                        <div class="col-12 text-center">
+                            {{ form.submit(class="btn btn-primary") }}
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {%endblock %}
+        </div>
+
+        <div class="right-panel">{% block right_panel %} {%endblock %}</div>
+    </div>
+</body>

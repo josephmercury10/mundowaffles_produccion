@@ -1,0 +1,111 @@
+<div class="estado-actions">
+    {% set pagado = pedido.comprobante_id is not none %}
+    {% if pedido.estado_mostrador == 1 %}
+        <div class="estado-progress">
+            <div class="progress-step active">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Preparación</span>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Listo</span>
+            </div>
+        </div>
+        <div class="d-grid gap-2 mt-4">
+            {% if not pagado %}
+            <button class="btn btn-primary btn-lg"
+                    type="button"
+                    onclick="mostrarModalCobro({{ pedido.id }}, {{ pedido.total|float }})">
+                💰 Cobrar
+            </button>
+            {% endif %}
+            <button class="btn btn-success btn-lg"
+                    hx-post="/mostrador/cambiar_estado/{{ pedido.id }}/2"
+                    hx-target="#estado-pedido-container"
+                    hx-swap="innerHTML"
+                    {% if not pagado %}disabled title="Debe estar pagado"{% endif %}>
+                <svg class="icon icon-sm" viewBox="0 0 24 24" style="stroke: white; fill: none; stroke-width: 2;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Marcar como Listo
+            </button>
+        </div>
+    {% elif pedido.estado_mostrador == 2 %}
+        <div class="estado-progress">
+            <div class="progress-step completed">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Preparación</span>
+            </div>
+            <div class="progress-line completed"></div>
+            <div class="progress-step completed">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Listo</span>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 mt-4">
+            {% if not pagado %}
+            <button class="btn btn-primary btn-lg"
+                    type="button"
+                    onclick="mostrarModalCobro({{ pedido.id }}, {{ pedido.total|float }})">
+                💰 Cobrar
+            </button>
+            {% else %}
+            <div class="alert alert-success mb-0 text-center">
+                <strong>Pagado</strong>
+                {% if pedido.comprobante %}
+                    <br><small>{{ pedido.comprobante.tipo_comprobante }} - {{ pedido.numero_comprobante }}</small>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    {% elif pedido.estado_mostrador == 3 %}
+        <div class="estado-progress">
+            <div class="progress-step completed">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Preparación</span>
+            </div>
+            <div class="progress-line completed"></div>
+            <div class="progress-step completed">
+                <div class="step-circle">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="step-label">Listo</span>
+            </div>
+        </div>
+        <div class="alert alert-success mt-4 text-center">
+            <svg class="icon" viewBox="0 0 24 24" style="stroke: #155724; fill: none; stroke-width: 2; width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <strong>¡Pedido Pagado!</strong>
+            {% if pedido.comprobante %}
+                <br><small>{{ pedido.comprobante.tipo_comprobante }} - {{ pedido.numero_comprobante }}</small>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

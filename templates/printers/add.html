@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block right_panel %}
+<div class="p-3">
+  <h4>Nueva Impresora</h4>
+  <form method="post" class="mt-3">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input name="nombre" class="form-control" required />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Driver (Windows)</label>
+        <input name="driver_name" class="form-control" placeholder="EPSON TM-T88V Receipt5" required />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Tipo (selecciona uno o más)</label>
+        <div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="tipo" value="ticket" id="tipo_ticket">
+            <label class="form-check-label" for="tipo_ticket">ticket</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="tipo" value="comanda" id="tipo_comanda">
+            <label class="form-check-label" for="tipo_comanda">comanda</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="tipo" value="factura" id="tipo_factura">
+            <label class="form-check-label" for="tipo_factura">factura</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="tipo" value="cocina" id="tipo_cocina">
+            <label class="form-check-label" for="tipo_cocina">cocina</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Perfil (selecciona uno o más)</label>
+        <div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perfil" value="general" id="perfil_general">
+            <label class="form-check-label" for="perfil_general">general</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perfil" value="delivery" id="perfil_delivery">
+            <label class="form-check-label" for="perfil_delivery">delivery</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perfil" value="mostrador" id="perfil_mostrador">
+            <label class="form-check-label" for="perfil_mostrador">mostrador</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="perfil" value="cocina" id="perfil_cocina">
+            <label class="form-check-label" for="perfil_cocina">cocina</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Ancho caracteres</label>
+        <input type="number" name="ancho_caracteres" class="form-control" value="42" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Feed lines</label>
+        <input type="number" name="feed_lines" class="form-control" value="3" />
+      </div>
+      <div class="col-md-4 form-check align-self-end">
+        <input type="checkbox" name="cortar_papel" id="cortar_papel" class="form-check-input" checked />
+        <label for="cortar_papel" class="form-check-label">Cortar papel</label>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button class="btn btn-primary" type="submit">Guardar</button>
+      <a class="btn btn-secondary" href="{{ url_for('printers.index') }}">Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
