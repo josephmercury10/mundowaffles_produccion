@@ -14,7 +14,17 @@ if HAS_WIN32:
         HAS_WIN32 = False
         logger.warning("win32print no disponible - impresión térmica deshabilitada")
 else:
-    logger.info("Sistema no-Windows detectado - impresión térmica deshabilitada")
+    logger.info("Sistema no-Windows detectado - usando PrintHost para impresión")
+
+# PrintHost client (para Linux/PythonAnywhere)
+PRINTHOST_ENABLED = not HAS_WIN32
+if PRINTHOST_ENABLED:
+    try:
+        from utils.print_client import PrintHostClient
+        logger.info("PrintHostClient disponible para impresión remota")
+    except ImportError:
+        PRINTHOST_ENABLED = False
+        logger.warning("PrintHostClient no disponible")
 
 # Comandos ESC/POS para impresoras térmicas
 ESC = b'\x1b'  # Escape
@@ -30,50 +40,195 @@ FEED_LINES = lambda n: ESC + b'd' + bytes([n])  # Avanza n líneas
 
 
 class ThermalPrinter:
-    def __init__(self, printer_name=None):
+    def __init__(self, printer_name=None, printhost_url=None):
         """
-        Inicializa la impresora térmica usando Windows Print Spooler
-        printer_name: nombre de la impresora en Windows (ej: "EPSON TM-T88V Receipt5")
-        Si es None, usa la impresora predeterminada
+        Inicializa la impresora térmica
+        
+        Args:
+            printer_name: Nombre de la impresora (ej: "EPSON TM-T88V Receipt5")
+            printhost_url: URL del PrintHost (solo Linux, ej: "http://192.168.1.50:8765")
+        
+        Modo de operación:
+            - Windows: usa win32print directo
+            - Linux: usa PrintHostClient (HTTP)
         """
         self.printer_name = printer_name
+        self.printhost_url = printhost_url
         self.printer = None
+        self.printhost_client = None
         
-        if not HAS_WIN32:
-            logger.warning("win32print no disponible - impresora no inicializada")
-            return
+        if HAS_WIN32:
+            # ===== MODO WINDOWS: win32print local =====
+            try:
+                if not printer_name:
+                    self.printer = win32print.GetDefaultPrinter()
+                    logger.info(f"Usando impresora predeterminada: {self.printer}")
+                else:
+                    self.printer = printer_name
+                    logger.info(f"Impresora seleccionada: {self.printer}")
+            except Exception as e:
+                logger.error(f"Error al inicializar impresora: {str(e)}")
+                self.printer = None
         
-        try:
-            if not printer_name:
-                # Usar impresora predeterminada
-                self.printer = win32print.GetDefaultPrinter()
-                logger.info(f"Usando impresora predeterminada: {self.printer}")
-            else:
-                self.printer = printer_name
-                logger.info(f"Impresora seleccionada: {self.printer}")
-                
-        except Exception as e:
-            logger.error(f"Error al inicializar impresora: {str(e)}")
-            self.printer = None
+        elif PRINTHOST_ENABLED and printhost_url:
+            # ===== MODO LINUX: PrintHost remoto =====
+            try:
+                self.printhost_client = PrintHostClient(printhost_url)
+                if self.printhost_client.health_check():
+                    logger.info(f"✅ PrintHost conectado: {printhost_url}")
+                else:
+                    logger.warning(f"⚠️ PrintHost no responde: {printhost_url}")
+            except Exception as e:
+                logger.error(f"Error al conectar PrintHost: {e}")
+                self.printhost_client = None
+        else:
+            logger.warning("No hay método de impresión disponible")
+
+    # ===== Serialización de datos para enviar a PrintHost =====
+    def _serialize_pedido(self, pedido):
+        return {
+            'id': getattr(pedido, 'id', None),
+            'fecha_hora': getattr(pedido, 'fecha_hora', None).isoformat() if getattr(pedido, 'fecha_hora', None) else None,
+            'total': float(getattr(pedido, 'total', 0) or 0),
+            'costo_envio': float(getattr(pedido, 'costo_envio', 0) or 0),
+            'estado_delivery': getattr(pedido, 'estado_delivery', None),
+            'comentarios': getattr(pedido, 'comentarios', None),
+        }
+
+    def _serialize_cliente(self, cliente):
+        if not cliente or not getattr(cliente, 'persona', None):
+            return {}
+        persona = cliente.persona
+        return {
+            'razon_social': getattr(persona, 'razon_social', None),
+            'telefono': getattr(persona, 'telefono', None),
+            'direccion': getattr(persona, 'direccion', None),
+            'documento': getattr(persona, 'documento', None),
+        }
+
+    def _serialize_items(self, items):
+        serializados = []
+        for item in items:
+            atributos = {}
+            if getattr(item, 'atributos_seleccionados', None):
+                import json
+                try:
+                    atributos = json.loads(item.atributos_seleccionados)
+                except Exception:
+                    atributos = {}
+            serializados.append({
+                'nombre': getattr(item.producto, 'nombre', str(item)) if getattr(item, 'producto', None) else str(item),
+                'cantidad': getattr(item, 'cantidad', 1),
+                'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
+                'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
+                'atributos': atributos,
+            })
+        return serializados
+
+    def _payload_pedido(self, pedido, cliente, items, total_con_envio):
+        return {
+            'pedido': self._serialize_pedido(pedido),
+            'cliente': self._serialize_cliente(cliente),
+            'items': self._serialize_items(items),
+            'total_con_envio': float(total_con_envio or 0) if total_con_envio is not None else None,
+        }
+
+    def _payload_comanda(self, pedido, items, tipo):
+        return {
+            'pedido': self._serialize_pedido(pedido),
+            'items': [
+                {
+                    'nombre': getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
+                    'cantidad': item.get('cantidad') if isinstance(item, dict) else getattr(item, 'cantidad', 1),
+                }
+                for item in items
+            ],
+            'tipo': tipo,
+        }
+
+    def _payload_agregados(self, pedido, productos):
+        return {
+            'pedido_id': getattr(pedido, 'id', None),
+            'productos': productos,
+        }
+
+    def _payload_eliminados(self, pedido, productos):
+        return {
+            'pedido_id': getattr(pedido, 'id', None),
+            'productos': productos,
+        }
+
+    def _payload_delivery(self, pedido, cliente, productos):
+        return {
+            'pedido': self._serialize_pedido(pedido),
+            'cliente': self._serialize_cliente(cliente),
+            'productos': [
+                {
+                    'nombre': getattr(p.producto, 'nombre', str(p)) if hasattr(p, 'producto') else p.get('nombre') if isinstance(p, dict) else str(p),
+                    'cantidad': getattr(p, 'cantidad', None) or (p.get('cantidad') if isinstance(p, dict) else 1),
+                }
+                for p in productos
+            ],
+        }
+
+    def _payload_mostrador(self, pedido, items):
+        return {
+            'pedido': self._serialize_pedido(pedido),
+            'items': [
+                {
+                    'nombre': getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
+                    'cantidad': getattr(item, 'cantidad', 1),
+                    'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
+                    'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
+                }
+                for item in items
+            ],
+        }
+
+    def _enviar_printhost(self, job_type, payload, feed=None, cut=None):
+        if not self.printhost_client:
+            logger.error("PrintHost no disponible")
+            return False
+        resultado = self.printhost_client.print_job(
+            job_type=job_type,
+            payload=payload,
+            driver=self.printer_name,
+            feed=feed,
+            cut=cut,
+        )
+        if resultado.get('ok'):
+            return True
+        logger.error(f"❌ PrintHost error: {resultado.get('error')}")
+        return False
     
     def imprimir_pedido(self, pedido, cliente, items, total_con_envio):
         """
         Imprime el detalle completo del pedido en formato de recibo
+        Funciona en Windows (win32print) y Linux (PrintHost)
         """
+        # Generar contenido del recibo
+        contenido = self._generar_recibo(pedido, cliente, items, total_con_envio)
+        
+        # Seleccionar método de impresión
+        if PRINTHOST_ENABLED and self.printhost_client:
+            payload = self._payload_pedido(pedido, cliente, items, total_con_envio)
+            return self._enviar_printhost('pedido', payload, feed=5, cut=True)
+        if HAS_WIN32 and self.printer:
+            return self._imprimir_local_windows(contenido, "Recibo Pedido")
+        logger.error("No hay impresora configurada (ni local ni PrintHost)")
+        return False
+    
+    def _imprimir_local_windows(self, contenido, titulo="Documento"):
+        """Imprime localmente en Windows usando win32print"""
         if not self.printer:
-            logger.error("Impresora no disponible")
+            logger.error("Impresora Windows no disponible")
             return False
         
         try:
-            # Crear contenido de impresión
-            contenido = self._generar_recibo(pedido, cliente, items, total_con_envio)
-            
-            # Imprimir usando Windows Print Spooler
             hprinter = win32print.OpenPrinter(self.printer)
             
             try:
-                # Enviar contenido a la impresora
-                win32print.StartDocPrinter(hprinter, 1, ("Recibo Pedido", None, "RAW"))
+                win32print.StartDocPrinter(hprinter, 1, (titulo, None, "RAW"))
                 win32print.StartPagePrinter(hprinter)
                 
                 # Convertir contenido a bytes y enviar
@@ -81,20 +236,44 @@ class ThermalPrinter:
                 win32print.WritePrinter(hprinter, contenido_bytes)
                 
                 # Avanzar papel y cortar
-                win32print.WritePrinter(hprinter, FEED_LINES(5))  # 5 líneas de avance
-                win32print.WritePrinter(hprinter, CUT_PAPER)  # Corte parcial
+                win32print.WritePrinter(hprinter, FEED_LINES(5))
+                win32print.WritePrinter(hprinter, CUT_PAPER)
                 
                 win32print.EndPagePrinter(hprinter)
                 win32print.EndDocPrinter(hprinter)
                 
-                logger.info(f"Pedido {pedido.id} impreso exitosamente")
+                logger.info(f"✅ Documento '{titulo}' impreso localmente")
                 return True
                 
             finally:
                 win32print.ClosePrinter(hprinter)
                 
         except Exception as e:
-            logger.error(f"Error al imprimir: {str(e)}")
+            logger.error(f"❌ Error impresión local: {str(e)}")
+            return False
+    
+    def _imprimir_remoto_printhost(self, contenido, pedido_id, tipo='raw'):
+        """Imprime remotamente via PrintHost (HTTP)"""
+        if not self.printhost_client:
+            logger.error("PrintHost no disponible")
+            return False
+        
+        try:
+            resultado = self.printhost_client.print_job(
+                job_type=tipo,
+                payload={'content': contenido, 'pedido_id': pedido_id},
+                driver=self.printer_name or "EPSON TM-T88V Receipt5",
+                feed=5,
+                cut=True,
+            )
+            if resultado.get('ok'):
+                logger.info(f"✅ Impreso remotamente via PrintHost (pedido #{pedido_id})")
+                return True
+            error_msg = resultado.get('error', 'Error desconocido')
+            logger.error(f"❌ PrintHost error: {error_msg}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error impresión remota: {e}")
             return False
     
     def _generar_recibo(self, pedido, cliente, items, total_con_envio):
@@ -185,43 +364,22 @@ class ThermalPrinter:
         """
         Imprime una comanda para cocina con los productos a preparar
         Esta comanda se imprime automáticamente al crear un nuevo pedido
+        Funciona en Windows (win32print) y Linux (PrintHost)
         
         Args:
             pedido: Objeto Venta con la información del pedido
             items: Lista de items del carrito (dict) o ProductoVenta
             tipo_pedido: "MOSTRADOR" o "DELIVERY"
         """
-        if not self.printer:
-            logger.error("Impresora no disponible para comanda")
-            return False
+        contenido = self._generar_comanda_cocina(pedido, items, tipo_pedido)
         
-        try:
-            contenido = self._generar_comanda_cocina(pedido, items, tipo_pedido)
-            
-            hprinter = win32print.OpenPrinter(self.printer)
-            
-            try:
-                win32print.StartDocPrinter(hprinter, 1, ("Comanda Cocina", None, "RAW"))
-                win32print.StartPagePrinter(hprinter)
-                contenido_bytes = contenido.encode('utf-8', errors='replace')
-                win32print.WritePrinter(hprinter, contenido_bytes)
-                
-                # Avanzar papel y cortar
-                win32print.WritePrinter(hprinter, FEED_LINES(5))  # 5 líneas de avance
-                win32print.WritePrinter(hprinter, CUT_PAPER)  # Corte parcial
-                
-                win32print.EndPagePrinter(hprinter)
-                win32print.EndDocPrinter(hprinter)
-                
-                logger.info(f"Comanda cocina pedido #{pedido.id} impresa exitosamente")
-                return True
-                
-            finally:
-                win32print.ClosePrinter(hprinter)
-                
-        except Exception as e:
-            logger.error(f"Error al imprimir comanda: {str(e)}")
-            return False
+        if PRINTHOST_ENABLED and self.printhost_client:
+            payload = self._payload_comanda(pedido, items, tipo_pedido)
+            return self._enviar_printhost('comanda', payload, feed=3, cut=False)
+        if HAS_WIN32 and self.printer:
+            return self._imprimir_local_windows(contenido, "Comanda Cocina")
+        logger.error("No hay impresora configurada")
+        return False
     
     def _generar_comanda_cocina(self, pedido, items, tipo_pedido):
         """Genera el contenido de la comanda para cocina - versión compacta"""
@@ -254,9 +412,6 @@ class ThermalPrinter:
     
     def imprimir_comanda_agregados(self, pedido, productos):
         """Imprime comanda con productos AGREGADOS a un pedido existente"""
-        if not self.printer:
-            return False
-        
         try:
             lineas = []
             ancho = 42
@@ -273,18 +428,13 @@ class ThermalPrinter:
             
             contenido = "\n".join(lineas)
             
-            hprinter = win32print.OpenPrinter(self.printer)
-            try:
-                win32print.StartDocPrinter(hprinter, 1, ("Comanda Agregados", None, "RAW"))
-                win32print.StartPagePrinter(hprinter)
-                win32print.WritePrinter(hprinter, contenido.encode('utf-8', errors='replace'))
-                win32print.WritePrinter(hprinter, FEED_LINES(3))
-                win32print.WritePrinter(hprinter, CUT_PAPER)
-                win32print.EndPagePrinter(hprinter)
-                win32print.EndDocPrinter(hprinter)
-                return True
-            finally:
-                win32print.ClosePrinter(hprinter)
+            if PRINTHOST_ENABLED and self.printhost_client:
+                payload = self._payload_agregados(pedido, productos)
+                return self._enviar_printhost('agregados', payload, feed=3, cut=False)
+            if HAS_WIN32 and self.printer:
+                return self._imprimir_local_windows(contenido, "Comanda Agregados")
+            logger.error("No hay impresora configurada")
+            return False
                 
         except Exception as e:
             logger.error(f"Error imprimir comanda agregados: {str(e)}")
@@ -292,9 +442,6 @@ class ThermalPrinter:
     
     def imprimir_comanda_eliminados(self, pedido, productos):
         """Imprime comanda con productos ELIMINADOS de un pedido"""
-        if not self.printer:
-            return False
-        
         try:
             lineas = []
             ancho = 42
@@ -311,18 +458,13 @@ class ThermalPrinter:
             
             contenido = "\n".join(lineas)
             
-            hprinter = win32print.OpenPrinter(self.printer)
-            try:
-                win32print.StartDocPrinter(hprinter, 1, ("Comanda Eliminados", None, "RAW"))
-                win32print.StartPagePrinter(hprinter)
-                win32print.WritePrinter(hprinter, contenido.encode('utf-8', errors='replace'))
-                win32print.WritePrinter(hprinter, FEED_LINES(3))
-                win32print.WritePrinter(hprinter, CUT_PAPER)
-                win32print.EndPagePrinter(hprinter)
-                win32print.EndDocPrinter(hprinter)
-                return True
-            finally:
-                win32print.ClosePrinter(hprinter)
+            if PRINTHOST_ENABLED and self.printhost_client:
+                payload = self._payload_eliminados(pedido, productos)
+                return self._enviar_printhost('eliminados', payload, feed=3, cut=False)
+            if HAS_WIN32 and self.printer:
+                return self._imprimir_local_windows(contenido, "Comanda Eliminados")
+            logger.error("No hay impresora configurada")
+            return False
                 
         except Exception as e:
             logger.error(f"Error imprimir comanda eliminados: {str(e)}")
@@ -332,31 +474,17 @@ class ThermalPrinter:
         """
         Imprime el comprobante de delivery para el repartidor
         Se imprime al momento de enviar el pedido
+        Funciona en Windows (win32print) y Linux (PrintHost)
         """
-        if not self.printer:
-            logger.error("Impresora no disponible")
-            return False
+        contenido = self._generar_comprobante_delivery(pedido, cliente, productos)
         
-        try:
-            contenido = self._generar_comprobante_delivery(pedido, cliente, productos)
-            
-            hprinter = win32print.OpenPrinter(self.printer)
-            try:
-                win32print.StartDocPrinter(hprinter, 1, ("Comprobante Delivery", None, "RAW"))
-                win32print.StartPagePrinter(hprinter)
-                win32print.WritePrinter(hprinter, contenido.encode('utf-8', errors='replace'))
-                win32print.WritePrinter(hprinter, FEED_LINES(5))
-                win32print.WritePrinter(hprinter, CUT_PAPER)
-                win32print.EndPagePrinter(hprinter)
-                win32print.EndDocPrinter(hprinter)
-                logger.info(f"Comprobante delivery #{pedido.id} impreso")
-                return True
-            finally:
-                win32print.ClosePrinter(hprinter)
-                
-        except Exception as e:
-            logger.error(f"Error imprimir comprobante delivery: {str(e)}")
-            return False
+        if PRINTHOST_ENABLED and self.printhost_client:
+            payload = self._payload_delivery(pedido, cliente, productos)
+            return self._enviar_printhost('delivery', payload, feed=4, cut=True)
+        if HAS_WIN32 and self.printer:
+            return self._imprimir_local_windows(contenido, "Comprobante Delivery")
+        logger.error("No hay impresora configurada")
+        return False
     
     def _generar_comprobante_delivery(self, pedido, cliente, productos):
         """Genera el contenido del comprobante de delivery"""
@@ -420,44 +548,21 @@ class ThermalPrinter:
         lineas.append(self._centrar("Gracias por su preferencia!", ancho))
         lineas.append("")
         lineas.append("")
-        
-        return "\n".join(lineas)
     
     def imprimir_pedido_mostrador(self, pedido, items):
         """
         Imprime el detalle de un pedido de mostrador
+        Funciona en Windows (win32print) y Linux (PrintHost)
         """
-        if not self.printer:
-            logger.error("Impresora no disponible")
-            return False
+        contenido = self._generar_recibo_mostrador(pedido, items)
         
-        try:
-            contenido = self._generar_recibo_mostrador(pedido, items)
-            
-            hprinter = win32print.OpenPrinter(self.printer)
-            
-            try:
-                win32print.StartDocPrinter(hprinter, 1, ("Recibo Mostrador", None, "RAW"))
-                win32print.StartPagePrinter(hprinter)
-                contenido_bytes = contenido.encode('utf-8', errors='replace')
-                win32print.WritePrinter(hprinter, contenido_bytes)
-                
-                # Avanzar papel y cortar
-                win32print.WritePrinter(hprinter, FEED_LINES(5))  # 5 líneas de avance
-                win32print.WritePrinter(hprinter, CUT_PAPER)  # Corte parcial
-                
-                win32print.EndPagePrinter(hprinter)
-                win32print.EndDocPrinter(hprinter)
-                
-                logger.info(f"Pedido mostrador {pedido.id} impreso exitosamente")
-                return True
-                
-            finally:
-                win32print.ClosePrinter(hprinter)
-                
-        except Exception as e:
-            logger.error(f"Error al imprimir: {str(e)}")
-            return False
+        if PRINTHOST_ENABLED and self.printhost_client:
+            payload = self._payload_mostrador(pedido, items)
+            return self._enviar_printhost('pedido', payload, feed=5, cut=True)
+        if HAS_WIN32 and self.printer:
+            return self._imprimir_local_windows(contenido, "Recibo Mostrador")
+        logger.error("No hay impresora configurada")
+        return False
     
     def _generar_recibo_mostrador(self, pedido, items):
         """Genera el contenido del recibo de mostrador"""
@@ -527,15 +632,19 @@ class ThermalPrinter:
 def get_printer(app=None):
     """
     Obtiene instancia de impresora según configuración
+    
     Configurar en config.py:
-    PRINTER_NAME = 'EPSON TM-T88V Receipt5'
+    - PRINTER_NAME = 'EPSON TM-T88V Receipt5'
+    - PRINTHOST_URL = 'http://192.168.1.50:8765' (solo producción/Linux)
     """
     if app is None:
         from flask import current_app
         app = current_app
     
     printer_name = app.config.get('PRINTER_NAME', None)
-    return ThermalPrinter(printer_name)
+    printhost_url = app.config.get('PRINTHOST_URL', None)
+    
+    return ThermalPrinter(printer_name, printhost_url)
 
 
 def get_printer_by_profile(perfil: str, tipo: str = None, app=None):
@@ -546,11 +655,15 @@ def get_printer_by_profile(perfil: str, tipo: str = None, app=None):
     if app is None:
         from flask import current_app
         app = current_app
+    
+    printhost_url = app.config.get('PRINTHOST_URL', None)
+    
     try:
         from utils.printer_manager import obtener_por_perfil
         pr = obtener_por_perfil(perfil, tipo)
         if pr and pr.driver_name:
-            return ThermalPrinter(pr.driver_name)
+            return ThermalPrinter(pr.driver_name, printhost_url)
     except Exception:
         pass
+    
     return get_printer(app)

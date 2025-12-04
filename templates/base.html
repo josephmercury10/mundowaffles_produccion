@@ -44,11 +44,9 @@
           <div class="nav-icon">💰</div>
           <div class="nav-icon">📺</div>
           <div class="nav-icon">📱</div>
-          {% if config.PRINTER_NAME %}
-          <div class="nav-icon" title="impresoras">
+          <div class="nav-icon" title="Configuración de impresoras">
             <a href="{{ url_for('printers.index') }}">⚙️</a>
           </div>
-          {% endif %}
         </div>
       </div>
       <div class="header-right">

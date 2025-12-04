@@ -25,7 +25,8 @@ class ProductionConfig():
     SECRET_KEY = os.environ.get('SECRET_KEY', 'change-this-in-production')
     UPLOADED_IMAGES_DEST = 'static/uploads/images'
     UPLOADED_FILES_DEST = 'static/uploads/files'
-    PRINTER_NAME = None  # Sin impresora térmica local en Linux
+    # Nombre de impresora para PrintHost (cliente configura la suya)
+    PRINTER_NAME = os.environ.get('PRINTER_NAME', 'EPSON TM-T88V Receipt5')
     
     # MySQL para Flask-MySQLdb (solo referencia, SQLAlchemy usa URI)
     MYSQL_HOST = os.environ.get('PA_DB_HOST', 'josephmercury10.mysql.pythonanywhere-services.com')
@@ -36,7 +37,7 @@ class ProductionConfig():
     # Placeholder para URI (se construye en app.py después de cargar config)
     SQLALCHEMY_DATABASE_URI = None
     
-    # PrintHost: Cliente debe configurar en WSGI
+    # PrintHost: Cliente debe configurar en WSGI (el servidor solo envía /print/job)
     # Ejemplo: os.environ['PRINTHOST_URL'] = 'http://192.168.1.50:8765'
     PRINTHOST_URL = os.environ.get('PRINTHOST_URL', None)
 

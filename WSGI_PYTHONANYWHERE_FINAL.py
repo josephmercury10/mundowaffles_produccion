@@ -54,11 +54,21 @@ os.environ['PA_DB_PASSWORD'] = 'TU_PASSWORD_MYSQL_AQUI'  # ← CAMBIAR
 # 2. Nombre de base de datos (Dashboard → Databases, incluir prefijo josephmercury10$)
 # Si tu BD se llama "mundowaffles" → usar "josephmercury10$mundowaffles"
 # Si tu BD se llama "dbmundo" → usar "josephmercury10$dbmundo"
-os.environ['PA_DB_NAME'] = 'josephmercury10$mundowaffles'  # ← CAMBIAR (verificar nombre)
+os.environ['PA_DB_NAME'] = 'josephmercury10$mundowaffles'  # ← VERIFICAR Y CAMBIAR
 
 # 3. Secret Key para Flask (generar con: python3 -c "import secrets; print(secrets.token_hex(32))")
 # Ejemplo: a7f3b9e2c8d1f4a6b3e7c5d8f1a4b7e9c2f5a8d1b4e7c0f3a6b9d2e5f8a1b4c
 os.environ['SECRET_KEY'] = 'PEGAR_RESULTADO_DE_SECRETS_TOKEN_HEX_AQUI'  # ← CAMBIAR
+
+# ========== CONFIGURACIÓN DE PRINTHOST (OPCIONAL) ==========
+# Si el cliente tiene PrintHost instalado en su PC para imprimir
+# Configurar la IP del cliente donde está corriendo PrintHost.exe
+# Ejemplo: os.environ['PRINTHOST_URL'] = 'http://192.168.1.50:8765'
+# Si no usas impresoras, comentar o dejar como None
+os.environ['PRINTHOST_URL'] = None  # ← CAMBIAR si usas impresora
+
+# Nombre de impresora (debe coincidir con el nombre en PrintHost del cliente)
+os.environ['PRINTER_NAME'] = 'EPSON TM-T88V Receipt5'  # ← CAMBIAR según tu impresora
 
 # ========== IMPORTAR APLICACIÓN FLASK ==========
 from app import app as application

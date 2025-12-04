@@ -80,16 +80,12 @@ app.register_blueprint(ventas_bp)
 app.register_blueprint(pruebas_bp)
 app.register_blueprint(delivery_bp)
 
-# Registrar blueprints de impresoras solo si hay soporte (Windows o configuraci�n espec�fica)
-is_windows = platform.system().lower() == 'windows'
-printer_enabled = bool(app.config.get('PRINTER_NAME')) and is_windows
-if printer_enabled:
-    app.register_blueprint(printers_bp)
-
+# Registrar blueprints de impresoras (ahora funciona en ambas plataformas)
+# - Windows: usa win32print directo
+# - Linux: usa PrintHost (HTTP)
+app.register_blueprint(printers_bp)
 app.register_blueprint(mostrador_bp)
-
-if printer_enabled:
-    app.register_blueprint(api_print_bp)
+app.register_blueprint(api_print_bp)
 
 # Ruta ra�z - redirige a mostrador
 @app.route('/')

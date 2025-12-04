@@ -1,7 +1,6 @@
 """
-PrintHost - Servidor de impresión térmica para Mundo Waffles
-Ejecutar en Windows con: python printer_host.py
-Escucha en puerto 8765 para recibir solicitudes HTTP de impresión
+PrintHost - El cliente Windows hace todo el trabajo de impresión.
+El servidor Flask (PythonAnywhere) solo envía instrucciones a /print/job.
 """
 
 from flask import Flask, request, jsonify
@@ -9,176 +8,327 @@ from flask_cors import CORS
 import win32print
 import logging
 from datetime import datetime
+from typing import Dict, Any, List, Optional
 
 app = Flask(__name__)
 CORS(app)
 
-# Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Configuración
 CONFIG = {
     'puerto': 8765,
-    'host': '0.0.0.0',  # Escucha en toda la red local
-    'version': '2.0.0'
+    'host': '0.0.0.0',
+    'version': '3.0.0',
 }
 
 
-# ===== HEALTHCHECK =====
+# ===== Utilidades de impresora =====
+def available_printers() -> List[str]:
+    try:
+        return [p[2] for p in win32print.EnumPrinters(2)]
+    except Exception as e:
+        logger.error(f"No se pudieron listar impresoras: {e}")
+        return []
+
+
+def select_printer(preferred: Optional[str]) -> Optional[str]:
+    printers = available_printers()
+    if preferred and preferred in printers:
+        return preferred
+    try:
+        return win32print.GetDefaultPrinter()
+    except Exception as e:
+        logger.error(f"Sin impresora predeterminada: {e}")
+        return printers[0] if printers else None
+
+
+def _print_bytes(driver: str, content: bytes, feed: int = 3, cut: bool = True, title: str = "RAW") -> Dict[str, Any]:
+    if not driver:
+        return {'ok': False, 'error': 'No hay impresora disponible'}
+
+    try:
+        handle = win32print.OpenPrinter(driver)
+        try:
+            win32print.StartDocPrinter(handle, 1, (title, None, "RAW"))
+            win32print.StartPagePrinter(handle)
+            win32print.WritePrinter(handle, content)
+            if feed and feed > 0:
+                win32print.WritePrinter(handle, ("\n" * feed).encode('utf-8'))
+            if cut:
+                win32print.WritePrinter(handle, b'\x1dV\x01')
+            win32print.EndPagePrinter(handle)
+            win32print.EndDocPrinter(handle)
+            logger.info(f"✅ Impreso en {driver}")
+            return {'ok': True, 'driver': driver}
+        finally:
+            win32print.ClosePrinter(handle)
+    except Exception as e:
+        logger.error(f"❌ Error al imprimir en {driver}: {e}")
+        return {'ok': False, 'error': str(e)}
+
+
+# ===== Generadores de texto =====
+def _center(text: str, width: int = 42) -> str:
+    return text.center(width)
+
+
+def _line(char: str = '-', width: int = 42) -> str:
+    return char * width
+
+
+def _fmt_fecha(fecha_iso: Optional[str]) -> str:
+    if not fecha_iso:
+        return ""
+    try:
+        dt = datetime.fromisoformat(fecha_iso)
+        return dt.strftime('%d/%m/%Y %H:%M')
+    except Exception:
+        return fecha_iso
+
+
+def build_recibo(payload: Dict[str, Any]) -> str:
+    pedido = payload.get('pedido', {})
+    cliente = payload.get('cliente', {})
+    items = payload.get('items', [])
+    total_con_envio = payload.get('total_con_envio')
+    ancho = 42
+
+    lineas = []
+    lineas.append(_center("MUNDO WAFFLES", ancho))
+    lineas.append(_center("Delivery", ancho))
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+
+    lineas.append(f"Pedido #: {pedido.get('id', '')}")
+    lineas.append(f"Fecha: {_fmt_fecha(pedido.get('fecha_hora'))}")
+    lineas.append("")
+
+    lineas.append("CLIENTE:")
+    if cliente:
+        if cliente.get('razon_social'):
+            lineas.append(f"  {cliente.get('razon_social')}")
+        if cliente.get('telefono'):
+            lineas.append(f"  Tel: {cliente.get('telefono')}")
+        if cliente.get('direccion'):
+            lineas.append(f"  Dir: {cliente.get('direccion')}")
+    lineas.append("")
+
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+    lineas.append("ITEMS:")
+    lineas.append("")
+
+    for item in items:
+        nombre = str(item.get('nombre', ''))[:30]
+        cantidad = item.get('cantidad', 1)
+        precio = float(item.get('precio_venta', 0))
+        subtotal = float(item.get('subtotal', cantidad * precio))
+        lineas.append(f"{nombre}")
+        lineas.append(f"  x{cantidad} @ ${precio:.2f} = ${subtotal:.2f}")
+        atributos = item.get('atributos', {}) or {}
+        for k, v in atributos.items():
+            lineas.append(f"    - {k}: {v}")
+        lineas.append("")
+
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+
+    subtotal_val = float(pedido.get('total', 0))
+    envio = float(pedido.get('costo_envio', 0))
+    total = total_con_envio if total_con_envio is not None else subtotal_val + envio
+
+    lineas.append(f"Subtotal:              ${subtotal_val:>8.2f}")
+    lineas.append(f"Envío:                 ${envio:>8.2f}")
+    lineas.append(_line('-', ancho))
+    lineas.append(f"TOTAL:                 ${total:>8.2f}")
+    lineas.append("")
+
+    estados = {1: "EN PREPARACION", 2: "EN CAMINO", 3: "ENTREGADO"}
+    estado = estados.get(pedido.get('estado_delivery'), 'DESCONOCIDO')
+    lineas.append(_center(f"Estado: {estado}", ancho))
+    lineas.append("")
+    lineas.append(_center("Gracias por su compra!", ancho))
+    lineas.append("\n\n")
+
+    return "\n".join(lineas)
+
+
+def build_comanda(payload: Dict[str, Any]) -> str:
+    pedido = payload.get('pedido', {})
+    items = payload.get('items', [])
+    tipo = payload.get('tipo', 'PEDIDO')
+    ancho = 42
+    lineas = []
+    lineas.append("")
+    lineas.append(f"#{pedido.get('id', '')}   {tipo}")
+    lineas.append(_fmt_fecha(pedido.get('fecha_hora')))  # puede venir vacío
+    lineas.append(_line('-', ancho))
+    for item in items:
+        cantidad = item.get('cantidad', 1)
+        nombre = str(item.get('nombre', '')).upper()
+        lineas.append(f"{cantidad}x {nombre}")
+    lineas.append(_line('-', ancho))
+    lineas.append("")
+    return "\n".join(lineas)
+
+
+def build_agregados(payload: Dict[str, Any]) -> str:
+    pedido_id = payload.get('pedido_id', '')
+    productos = payload.get('productos', [])
+    ancho = 42
+    lineas = ["", f"#{pedido_id}   AGREGADO", _line('-', ancho)]
+    for item in productos:
+        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
+    lineas.append(_line('-', ancho))
+    lineas.append("")
+    return "\n".join(lineas)
+
+
+def build_eliminados(payload: Dict[str, Any]) -> str:
+    pedido_id = payload.get('pedido_id', '')
+    productos = payload.get('productos', [])
+    ancho = 42
+    lineas = ["", f"#{pedido_id}   ELIMINADO", _line('-', ancho)]
+    for item in productos:
+        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
+    lineas.append(_line('-', ancho))
+    lineas.append("")
+    return "\n".join(lineas)
+
+
+def build_delivery(payload: Dict[str, Any]) -> str:
+    pedido = payload.get('pedido', {})
+    cliente = payload.get('cliente', {})
+    productos = payload.get('productos', [])
+    ancho = 42
+    lineas = ["", _center("MUNDO WAFFLES", ancho), _center("=" * 20, ancho), ""]
+    lineas.append(f"Pedido #: {pedido.get('id', '')}")
+    lineas.append(f"Fecha: {_fmt_fecha(pedido.get('fecha_hora'))}")
+    lineas.append("")
+    lineas.append(_line('-', ancho))
+    lineas.append("DATOS DEL CLIENTE")
+    lineas.append(_line('-', ancho))
+    if cliente:
+        if cliente.get('razon_social'):
+            lineas.append(f"Nombre: {cliente.get('razon_social')}")
+        if cliente.get('telefono'):
+            lineas.append(f"Tel: {cliente.get('telefono')}")
+        if cliente.get('direccion'):
+            lineas.append(f"Dir: {cliente.get('direccion')}")
+    lineas.append("")
+    lineas.append(_line('-', ancho))
+    lineas.append("PRODUCTOS")
+    lineas.append(_line('-', ancho))
+    for item in productos:
+        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
+    lineas.append("")
+    lineas.append(_line('=', ancho))
+    lineas.append(_center("DELIVERY", ancho))
+    lineas.append(_line('=', ancho))
+    lineas.append("\n\n")
+    return "\n".join(lineas)
+
+
+# ===== Procesador de trabajos =====
+def process_job(job_type: str, payload: Dict[str, Any], driver: Optional[str], feed: Optional[int], cut: Optional[bool]):
+    resolved_driver = select_printer(driver)
+    feed_val = 5 if feed is None else feed
+    cut_val = True if cut is None else cut
+
+    if job_type == 'raw':
+        content = payload.get('content') or payload.get('contenido', '')
+        if not content:
+            return {'ok': False, 'error': 'content requerido'}
+        return _print_bytes(resolved_driver, content.encode('utf-8', errors='replace'), feed_val, cut_val, title='RAW')
+
+    if job_type == 'pedido':
+        contenido = payload.get('contenido') or build_recibo(payload)
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 5, True, title='Pedido')
+
+    if job_type == 'comanda':
+        contenido = build_comanda(payload)
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Comanda')
+
+    if job_type == 'agregados':
+        contenido = build_agregados(payload)
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Agregados')
+
+    if job_type == 'eliminados':
+        contenido = build_eliminados(payload)
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Eliminados')
+
+    if job_type == 'delivery':
+        contenido = build_delivery(payload)
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 4, True, title='Delivery')
+
+    return {'ok': False, 'error': f'Tipo de trabajo no soportado: {job_type}'}
+
+
+# ===== Endpoints =====
 @app.get('/health')
 def health():
-    """Verifica que PrintHost esté activo"""
     return jsonify({
         'status': 'ok',
         'version': CONFIG['version'],
+        'default_printer': select_printer(None),
+        'printers': available_printers(),
         'timestamp': datetime.now().isoformat()
     })
 
 
-# ===== LISTAR IMPRESORAS =====
 @app.get('/printers')
-def list_printers():
-    """Lista todas las impresoras disponibles en Windows"""
-    try:
-        printers = win32print.EnumPrinters(2)  # 2 = PRINTER_ENUM_LOCAL
-        printer_list = [p[2] for p in printers]  # Obtener nombre de cada impresora
-        
-        logger.info(f"✅ Impresoras disponibles: {printer_list}")
-        
-        return jsonify({
-            'ok': True,
-            'printers': printer_list,
-            'count': len(printer_list)
-        })
-    except Exception as e:
-        logger.error(f"❌ Error listar impresoras: {e}")
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+def printers():
+    lista = available_printers()
+    return jsonify({'ok': True, 'printers': lista, 'count': len(lista)})
 
 
-# ===== IMPRIMIR RAW =====
+@app.post('/print/job')
+def print_job():
+    data = request.get_json(force=True, silent=True) or {}
+    job_type = data.get('type', 'raw')
+    payload = data.get('payload', {})
+    driver = data.get('driver')
+    feed = data.get('feed')
+    cut = data.get('cut')
+    result = process_job(job_type, payload, driver, feed, cut)
+    status = 200 if result.get('ok') else 400
+    return jsonify(result), status
+
+
+# Compatibilidad con endpoints antiguos
 @app.post('/print/raw')
-def print_raw():
-    """
-    Endpoint para imprimir contenido RAW
-    
-    JSON esperado:
-    {
-        "driver": "EPSON TM-T88V Receipt5",
-        "content": "Contenido a imprimir...",
-        "feed": 3,
-        "cut": true
-    }
-    """
+def print_raw_legacy():
     data = request.get_json(force=True, silent=True) or {}
     driver = data.get('driver')
-    content = data.get('content', '')
-    feed = int(data.get('feed', 3))
-    cut = bool(data.get('cut', True))
-    
-    if not driver or not content:
-        logger.warning("❌ Request inválido: falta driver o content")
-        return jsonify({'ok': False, 'error': 'driver y content requeridos'}), 400
-    
-    try:
-        logger.info(f"🖨️ Imprimiendo en: {driver} (feed={feed}, cut={cut})")
-        
-        hprinter = win32print.OpenPrinter(driver)
-        try:
-            win32print.StartDocPrinter(hprinter, 1, ("RAW", None, "RAW"))
-            win32print.StartPagePrinter(hprinter)
-            
-            # Enviar contenido
-            win32print.WritePrinter(hprinter, content.encode('utf-8', errors='replace'))
-            
-            # Avanzar papel
-            if feed > 0:
-                win32print.WritePrinter(hprinter, ("\n" * feed).encode('utf-8'))
-            
-            # Cortar papel (ESC/POS: GS V 1 = corte parcial)
-            if cut:
-                win32print.WritePrinter(hprinter, b'\x1dV\x01')
-            
-            win32print.EndPagePrinter(hprinter)
-            win32print.EndDocPrinter(hprinter)
-            
-            logger.info(f"✅ Documento impreso exitosamente en {driver}")
-            return jsonify({'ok': True})
-        
-        finally:
-            win32print.ClosePrinter(hprinter)
-    
-    except Exception as e:
-        logger.error(f"❌ Error al imprimir: {e}")
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    payload = {'content': data.get('content', '')}
+    feed = data.get('feed')
+    cut = data.get('cut')
+    result = process_job('raw', payload, driver, feed, cut)
+    status = 200 if result.get('ok') else 400
+    return jsonify(result), status
 
 
-# ===== IMPRIMIR PEDIDO =====
 @app.post('/print/pedido')
-def print_pedido():
-    """
-    Endpoint específico para imprimir pedidos
-    
-    JSON esperado:
-    {
-        "driver": "EPSON TM-T88V Receipt5",
-        "pedido_id": 123,
-        "contenido": "Contenido formateado del pedido..."
-    }
-    """
+def print_pedido_legacy():
     data = request.get_json(force=True, silent=True) or {}
     driver = data.get('driver')
-    pedido_id = data.get('pedido_id')
-    contenido = data.get('contenido', '')
-    
-    if not driver or not contenido:
-        logger.warning("❌ Request inválido: falta driver o contenido")
-        return jsonify({'ok': False, 'error': 'driver y contenido requeridos'}), 400
-    
-    try:
-        logger.info(f"🧾 Imprimiendo pedido #{pedido_id} en: {driver}")
-        
-        hprinter = win32print.OpenPrinter(driver)
-        try:
-            win32print.StartDocPrinter(hprinter, 1, (f"Pedido_{pedido_id}", None, "RAW"))
-            win32print.StartPagePrinter(hprinter)
-            
-            # Contenido
-            win32print.WritePrinter(hprinter, contenido.encode('utf-8', errors='replace'))
-            
-            # Avance de papel
-            win32print.WritePrinter(hprinter, b'\n\n\n\n')
-            
-            # Corte de papel
-            win32print.WritePrinter(hprinter, b'\x1dV\x01')
-            
-            win32print.EndPagePrinter(hprinter)
-            win32print.EndDocPrinter(hprinter)
-            
-            logger.info(f"✅ Pedido #{pedido_id} impreso exitosamente")
-            return jsonify({
-                'ok': True,
-                'pedido_id': pedido_id,
-                'mensaje': 'Pedido impreso exitosamente'
-            })
-        finally:
-            win32print.ClosePrinter(hprinter)
-    
-    except Exception as e:
-        logger.error(f"❌ Error pedido #{pedido_id}: {e}")
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    payload = {
+        'contenido': data.get('contenido'),
+        'pedido': {'id': data.get('pedido_id')},
+    }
+    result = process_job('pedido', payload, driver, None, None)
+    status = 200 if result.get('ok') else 400
+    return jsonify(result), status
 
 
-# ===== ERROR HANDLERS =====
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({'ok': False, 'error': 'Endpoint no encontrado'}), 404
+
 
 @app.errorhandler(500)
 def server_error(e):
@@ -189,7 +339,5 @@ def server_error(e):
 if __name__ == '__main__':
     logger.info(f"🖨️ PrintHost v{CONFIG['version']} iniciando...")
     logger.info(f"📡 Escuchando en {CONFIG['host']}:{CONFIG['puerto']}")
-    logger.info("✅ Lista para recibir solicitudes de impresión")
-    logger.info("💡 Configura en app.py: PRINTHOST_URL = 'http://IP:8765'")
-    
+    logger.info("✅ El servidor remoto solo envía /print/job")
     app.run(host=CONFIG['host'], port=CONFIG['puerto'], debug=False, use_reloader=False)
