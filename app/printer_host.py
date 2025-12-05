@@ -198,9 +198,17 @@ def build_recibo_delivery(payload: Dict[str, Any]) -> str:
         
         lineas.append(f"{nombre}")
         lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
-        atributos = item.get('atributos', {}) or {}
-        for k, v in atributos.items():
-            lineas.append(f"    - {k}: {v}")
+        
+        # Extras (nuevo formato: lista de objetos)
+        extras = item.get('extras', []) or []
+        for extra in extras:
+            if isinstance(extra, dict):
+                valor = extra.get('valor', '')
+                precio_extra = float(extra.get('precio_adicional', 0))
+                if precio_extra > 0:
+                    lineas.append(f"    + {valor} (+{_format_precio(precio_extra)})")
+                else:
+                    lineas.append(f"    + {valor}")
         lineas.append("")
 
     lineas.append(_line('=', ancho))
@@ -293,6 +301,13 @@ def build_comanda(payload: Dict[str, Any]) -> str:
         # Formato: [cantidad]x NOMBRE (en mayúsculas para legibilidad)
         # Limitar nombre a 35 caracteres para que quepa con cantidad
         lineas.append(f"{cantidad}x {nombre}")
+        
+        # Extras si existen
+        extras = item.get('extras', []) or []
+        for extra in extras:
+            if isinstance(extra, dict):
+                valor = extra.get('valor', '')
+                lineas.append(f"   + {str(valor).upper()[:32]}")
     
     lineas.append("\n\n")
     
@@ -316,6 +331,13 @@ def build_agregados(payload: Dict[str, Any]) -> str:
         nombre = item.get('nombre') or item.get('NOMBRE', '')
         nombre = str(nombre).upper()[:35]
         lineas.append(f"{cantidad}x {nombre}")
+        
+        # Extras si existen
+        extras = item.get('extras', []) or []
+        for extra in extras:
+            if isinstance(extra, dict):
+                valor = extra.get('valor', '')
+                lineas.append(f"   + {str(valor).upper()[:32]}")
     
     lineas.append("\n\n")
     
@@ -339,6 +361,13 @@ def build_eliminados(payload: Dict[str, Any]) -> str:
         nombre = item.get('nombre') or item.get('NOMBRE', '')
         nombre = str(nombre).upper()[:35]
         lineas.append(f"{cantidad}x {nombre}")
+        
+        # Extras si existen
+        extras = item.get('extras', []) or []
+        for extra in extras:
+            if isinstance(extra, dict):
+                valor = extra.get('valor', '')
+                lineas.append(f"   + {str(valor).upper()[:32]}")
     
     lineas.append("\n\n")
     

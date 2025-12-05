@@ -179,19 +179,24 @@ class ThermalPrinter:
     def _serialize_items(self, items):
         serializados = []
         for item in items:
-            atributos = {}
+            extras = []
             if getattr(item, 'atributos_seleccionados', None):
                 import json
                 try:
-                    atributos = json.loads(item.atributos_seleccionados)
+                    atributos = item.atributos_seleccionados
+                    if isinstance(atributos, str):
+                        atributos = json.loads(atributos)
+                    # Ahora es lista de {id, valor, precio_adicional}
+                    if isinstance(atributos, list):
+                        extras = atributos
                 except Exception:
-                    atributos = {}
+                    extras = []
             serializados.append({
                 'nombre': getattr(item.producto, 'nombre', str(item)) if getattr(item, 'producto', None) else str(item),
                 'cantidad': getattr(item, 'cantidad', 1),
                 'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
                 'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
-                'atributos': atributos,
+                'extras': extras,
             })
         return serializados
 
@@ -213,15 +218,36 @@ class ThermalPrinter:
             # Mostrador: cliente desde comentarios
             cliente_data = {'razon_social': pedido.comentarios}
         
+        items_serializados = []
+        for item in items:
+            if isinstance(item, dict):
+                item_data = {
+                    'nombre': item.get('nombre'),
+                    'cantidad': item.get('cantidad'),
+                    'extras': item.get('extras', []),
+                }
+            else:
+                extras = []
+                if hasattr(item, 'atributos_seleccionados') and item.atributos_seleccionados:
+                    import json
+                    try:
+                        atributos = item.atributos_seleccionados
+                        if isinstance(atributos, str):
+                            atributos = json.loads(atributos)
+                        if isinstance(atributos, list):
+                            extras = atributos
+                    except:
+                        pass
+                item_data = {
+                    'nombre': getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
+                    'cantidad': getattr(item, 'cantidad', 1),
+                    'extras': extras,
+                }
+            items_serializados.append(item_data)
+        
         return {
             'pedido': self._serialize_pedido(pedido),
-            'items': [
-                {
-                    'nombre': item.get('nombre') if isinstance(item, dict) else (getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item)),
-                    'cantidad': item.get('cantidad') if isinstance(item, dict) else getattr(item, 'cantidad', 1),
-                }
-                for item in items
-            ],
+            'items': items_serializados,
             'tipo': tipo,
             'cliente': cliente_data,
         }
@@ -253,18 +279,29 @@ class ThermalPrinter:
         }
 
     def _payload_mostrador(self, pedido, items):
+        items_serializados = []
+        for item in items:
+            extras = []
+            if hasattr(item, 'atributos_seleccionados') and item.atributos_seleccionados:
+                import json
+                try:
+                    atributos = item.atributos_seleccionados
+                    if isinstance(atributos, str):
+                        atributos = json.loads(atributos)
+                    if isinstance(atributos, list):
+                        extras = atributos
+                except:
+                    pass
+            items_serializados.append({
+                'nombre': getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
+                'cantidad': getattr(item, 'cantidad', 1),
+                'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
+                'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
+                'extras': extras,
+            })
         return {
             'pedido': self._serialize_pedido(pedido),
-            'items': [
-                {
-                    'nombre': getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
-                    'cantidad': getattr(item, 'cantidad', 1),
-                    'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
-                    'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
-                    'atributos': {},
-                }
-                for item in items
-            ],
+            'items': items_serializados,
         }
 
     def _enviar_printhost(self, job_type, payload, feed=None, cut=None):
@@ -378,13 +415,21 @@ class ThermalPrinter:
             lineas.append(f"{producto}")
             lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
             
-            # Atributos si existen
+            # Extras si existen
             if item.atributos_seleccionados:
                 import json
                 try:
-                    atributos = json.loads(item.atributos_seleccionados)
-                    for key, value in atributos.items():
-                        lineas.append(f"    - {key}: {value}")
+                    extras = item.atributos_seleccionados
+                    if isinstance(extras, str):
+                        extras = json.loads(extras)
+                    if isinstance(extras, list):
+                        for extra in extras:
+                            valor = extra.get('valor', '')
+                            precio_extra = float(extra.get('precio_adicional', 0))
+                            if precio_extra > 0:
+                                lineas.append(f"    + {valor} (+${precio_extra:,.0f})")
+                            else:
+                                lineas.append(f"    + {valor}")
                 except:
                     pass
             
@@ -471,14 +516,32 @@ class ThermalPrinter:
             if isinstance(item, dict):
                 cantidad = item['cantidad']
                 nombre = item['nombre']
+                extras = item.get('extras', [])
             else:
                 cantidad = item.cantidad
                 nombre = item.producto.nombre if hasattr(item, 'producto') else str(item)
+                # Obtener extras del item
+                extras = []
+                if hasattr(item, 'atributos_seleccionados') and item.atributos_seleccionados:
+                    import json
+                    try:
+                        atributos = item.atributos_seleccionados
+                        if isinstance(atributos, str):
+                            atributos = json.loads(atributos)
+                        if isinstance(atributos, list):
+                            extras = atributos
+                    except:
+                        pass
             
             # Formato: [cantidad]x NOMBRE (en mayúsculas para legibilidad)
             # Limitar nombre a 35 caracteres para que quepa con cantidad
             nombre_limpio = nombre.upper()[:35]
             lineas.append(f"{cantidad}x {nombre_limpio}")
+            
+            # Mostrar extras si existen
+            for extra in extras:
+                valor = extra.get('valor', '') if isinstance(extra, dict) else str(extra)
+                lineas.append(f"   + {valor.upper()[:32]}")
         
         lineas.append("")
         
@@ -498,6 +561,11 @@ class ThermalPrinter:
             for item in productos:
                 nombre = item['nombre'].upper()[:35]
                 lineas.append(f"{item['cantidad']}x {nombre}")
+                # Mostrar extras si existen
+                extras = item.get('extras', [])
+                for extra in extras:
+                    valor = extra.get('valor', '') if isinstance(extra, dict) else str(extra)
+                    lineas.append(f"   + {valor.upper()[:32]}")
             
             lineas.append("")
             
@@ -697,6 +765,25 @@ class ThermalPrinter:
             
             lineas.append(f"{producto}")
             lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
+            
+            # Extras si existen
+            if item.atributos_seleccionados:
+                import json
+                try:
+                    extras = item.atributos_seleccionados
+                    if isinstance(extras, str):
+                        extras = json.loads(extras)
+                    if isinstance(extras, list):
+                        for extra in extras:
+                            valor = extra.get('valor', '')
+                            precio_extra = float(extra.get('precio_adicional', 0))
+                            if precio_extra > 0:
+                                lineas.append(f"    + {valor} (+${precio_extra:,.0f})")
+                            else:
+                                lineas.append(f"    + {valor}")
+                except:
+                    pass
+            
             lineas.append("")
         
         # Resumen
