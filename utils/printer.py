@@ -204,6 +204,15 @@ class ThermalPrinter:
         }
 
     def _payload_comanda(self, pedido, items, tipo):
+        # Obtener cliente desde relación o desde comentarios (para mostrador)
+        cliente_data = {}
+        if hasattr(pedido, 'cliente') and getattr(pedido, 'cliente', None):
+            # Delivery: cliente desde relación
+            cliente_data = self._serialize_cliente(pedido.cliente)
+        elif hasattr(pedido, 'comentarios') and getattr(pedido, 'comentarios', None):
+            # Mostrador: cliente desde comentarios
+            cliente_data = {'razon_social': pedido.comentarios}
+        
         return {
             'pedido': self._serialize_pedido(pedido),
             'items': [
@@ -214,6 +223,7 @@ class ThermalPrinter:
                 for item in items
             ],
             'tipo': tipo,
+            'cliente': cliente_data,
         }
 
     def _payload_agregados(self, pedido, productos):

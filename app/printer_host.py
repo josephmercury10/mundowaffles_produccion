@@ -256,6 +256,12 @@ def build_comanda(payload: Dict[str, Any]) -> str:
     lineas.append("")
     lineas.append(_center(f"=== {tipo_pedido} ===", ancho))
     
+    # Cliente si disponible - ARRIBA del pedido
+    cliente = payload.get('cliente', {})
+    if cliente and cliente.get('razon_social'):
+        cliente_nombre = cliente.get('razon_social', '')[:30]
+        lineas.append(f"{cliente_nombre}")
+    
     # Pedido #, fecha y hora en una línea
     pedido_id = pedido.get('id', '')
     fecha_hora = pedido.get('fecha_hora', '')
@@ -274,12 +280,6 @@ def build_comanda(payload: Dict[str, Any]) -> str:
         lineas.append(f"#{id_num:4d}  {hora}")
     except (ValueError, TypeError):
         lineas.append(f"#{str(pedido_id):>4}  {hora}")
-    
-    # Cliente si disponible (en payload normalmente no viene, pero chequeamos)
-    cliente = payload.get('cliente', {})
-    if cliente and cliente.get('razon_social'):
-        cliente_nombre = cliente.get('razon_social', '')[:20]
-        lineas.append(f"CLIENTE: {cliente_nombre}")
     
     lineas.append("")
     
