@@ -208,7 +208,7 @@ class ThermalPrinter:
             'pedido': self._serialize_pedido(pedido),
             'items': [
                 {
-                    'nombre': getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
+                    'nombre': item.get('nombre') if isinstance(item, dict) else (getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item)),
                     'cantidad': item.get('cantidad') if isinstance(item, dict) else getattr(item, 'cantidad', 1),
                 }
                 for item in items
@@ -236,6 +236,7 @@ class ThermalPrinter:
                 {
                     'nombre': getattr(p.producto, 'nombre', str(p)) if hasattr(p, 'producto') else p.get('nombre') if isinstance(p, dict) else str(p),
                     'cantidad': getattr(p, 'cantidad', None) or (p.get('cantidad') if isinstance(p, dict) else 1),
+                    'precio_venta': float(getattr(p, 'precio_venta', 0) or 0) if hasattr(p, 'precio_venta') else (float(p.get('precio_venta', 0)) if isinstance(p, dict) else 0),
                 }
                 for p in productos
             ],

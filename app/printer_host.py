@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 CONFIG = {
     'puerto': 8765,
     'host': '0.0.0.0',
-    'version': '3.0.0',
+    'version': '4.0.0',
 }
 
 
@@ -90,6 +90,19 @@ def _fmt_fecha(fecha_iso: Optional[str]) -> str:
         return fecha_iso
 
 
+def _format_precio(valor) -> str:
+    """
+    Formatea un valor numérico como precio en pesos chileno
+    Ejemplo: 1000 -> $1.000, 1500000 -> $1.500.000
+    """
+    try:
+        valor_int = int(float(valor))
+        valor_str = f"{valor_int:,}".replace(",", ".")
+        return f"${valor_str}"
+    except (ValueError, TypeError):
+        return "$0"
+
+
 def build_recibo(payload: Dict[str, Any]) -> str:
     pedido = payload.get('pedido', {})
     cliente = payload.get('cliente', {})
@@ -127,8 +140,12 @@ def build_recibo(payload: Dict[str, Any]) -> str:
         cantidad = item.get('cantidad', 1)
         precio = float(item.get('precio_venta', 0))
         subtotal = float(item.get('subtotal', cantidad * precio))
+        
+        precio_fmt = _format_precio(precio)
+        subtotal_fmt = _format_precio(subtotal)
+        
         lineas.append(f"{nombre}")
-        lineas.append(f"  x{cantidad} @ ${precio:.2f} = ${subtotal:.2f}")
+        lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
         atributos = item.get('atributos', {}) or {}
         for k, v in atributos.items():
             lineas.append(f"    - {k}: {v}")
@@ -140,11 +157,15 @@ def build_recibo(payload: Dict[str, Any]) -> str:
     subtotal_val = float(pedido.get('total', 0))
     envio = float(pedido.get('costo_envio', 0))
     total = total_con_envio if total_con_envio is not None else subtotal_val + envio
+    
+    subtotal_fmt = _format_precio(subtotal_val)
+    envio_fmt = _format_precio(envio)
+    total_fmt = _format_precio(total)
 
-    lineas.append(f"Subtotal:              ${subtotal_val:>8.2f}")
-    lineas.append(f"Envío:                 ${envio:>8.2f}")
+    lineas.append(f"Subtotal:              {subtotal_fmt:>10}")
+    lineas.append(f"Envio:                 {envio_fmt:>10}")
     lineas.append(_line('-', ancho))
-    lineas.append(f"TOTAL:                 ${total:>8.2f}")
+    lineas.append(f"TOTAL:                 {total_fmt:>10}")
     lineas.append("")
 
     estados = {1: "EN PREPARACION", 2: "EN CAMINO", 3: "ENTREGADO"}
@@ -158,78 +179,225 @@ def build_recibo(payload: Dict[str, Any]) -> str:
 
 
 def build_comanda(payload: Dict[str, Any]) -> str:
+    """
+    Genera el contenido de la comanda para cocina - IDÉNTICO a utils/printer.py
+    Formato:
+    - Tipo de venta (MOSTRADOR/DELIVERY) en grande
+    - Hora y cliente
+    - Productos en letra grande
+    - Mínimo papel posible
+    """
     pedido = payload.get('pedido', {})
     items = payload.get('items', [])
-    tipo = payload.get('tipo', 'PEDIDO')
+    tipo_pedido = payload.get('tipo', 'MOSTRADOR')
     ancho = 42
+    
     lineas = []
+    
+    # ===== ENCABEZADO COMPACTO =====
+    # Tipo de venta (MOSTRADOR/DELIVERY) - centrado
     lineas.append("")
-    lineas.append(f"#{pedido.get('id', '')}   {tipo}")
-    lineas.append(_fmt_fecha(pedido.get('fecha_hora')))  # puede venir vacío
-    lineas.append(_line('-', ancho))
+    lineas.append(_center(f"=== {tipo_pedido} ===", ancho))
+    
+    # Pedido #, fecha y hora en una línea
+    pedido_id = pedido.get('id', '')
+    fecha_hora = pedido.get('fecha_hora', '')
+    if fecha_hora:
+        try:
+            dt = datetime.fromisoformat(fecha_hora)
+            hora = dt.strftime('%H:%M')
+        except:
+            hora = ''
+    else:
+        hora = ''
+    
+    # Formatear pedido_id como número entero con padding
+    try:
+        id_num = int(pedido_id)
+        lineas.append(f"#{id_num:4d}  {hora}")
+    except (ValueError, TypeError):
+        lineas.append(f"#{str(pedido_id):>4}  {hora}")
+    
+    # Cliente si disponible (en payload normalmente no viene, pero chequeamos)
+    cliente = payload.get('cliente', {})
+    if cliente and cliente.get('razon_social'):
+        cliente_nombre = cliente.get('razon_social', '')[:20]
+        lineas.append(f"CLIENTE: {cliente_nombre}")
+    
+    lineas.append("")
+    
+    # ===== PRODUCTOS (lo más importante) =====
+    # Sin línea divisoria arriba para ahorrar papel
     for item in items:
-        cantidad = item.get('cantidad', 1)
-        nombre = str(item.get('nombre', '')).upper()
+        # Soportar claves en minúsculas y mayúsculas
+        cantidad = item.get('cantidad') or item.get('CANTIDAD', 1)
+        nombre = item.get('nombre') or item.get('NOMBRE', '')
+        nombre = str(nombre).upper()[:35]
+        # Formato: [cantidad]x NOMBRE (en mayúsculas para legibilidad)
+        # Limitar nombre a 35 caracteres para que quepa con cantidad
         lineas.append(f"{cantidad}x {nombre}")
-    lineas.append(_line('-', ancho))
+    
     lineas.append("")
+    
     return "\n".join(lineas)
 
 
 def build_agregados(payload: Dict[str, Any]) -> str:
+    """Imprime comanda con productos AGREGADOS - IDÉNTICO a utils/printer.py"""
     pedido_id = payload.get('pedido_id', '')
     productos = payload.get('productos', [])
     ancho = 42
-    lineas = ["", f"#{pedido_id}   AGREGADO", _line('-', ancho)]
-    for item in productos:
-        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
-    lineas.append(_line('-', ancho))
+    
+    lineas = []
     lineas.append("")
+    lineas.append(_center("=== AGREGADOS ===", ancho))
+    lineas.append(f"Pedido #{pedido_id}")
+    lineas.append("")
+    
+    for item in productos:
+        cantidad = item.get('cantidad') or item.get('CANTIDAD', 1)
+        nombre = item.get('nombre') or item.get('NOMBRE', '')
+        nombre = str(nombre).upper()[:35]
+        lineas.append(f"{cantidad}x {nombre}")
+    
+    lineas.append("")
+    
     return "\n".join(lineas)
 
 
 def build_eliminados(payload: Dict[str, Any]) -> str:
+    """Imprime comanda con productos ELIMINADOS - IDÉNTICO a utils/printer.py"""
     pedido_id = payload.get('pedido_id', '')
     productos = payload.get('productos', [])
     ancho = 42
-    lineas = ["", f"#{pedido_id}   ELIMINADO", _line('-', ancho)]
-    for item in productos:
-        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
-    lineas.append(_line('-', ancho))
+    
+    lineas = []
     lineas.append("")
+    lineas.append(_center("=== ELIMINADOS ===", ancho))
+    lineas.append(f"Pedido #{pedido_id}")
+    lineas.append("")
+    
+    for item in productos:
+        cantidad = item.get('cantidad') or item.get('CANTIDAD', 1)
+        nombre = item.get('nombre') or item.get('NOMBRE', '')
+        nombre = str(nombre).upper()[:35]
+        lineas.append(f"{cantidad}x {nombre}")
+    
+    lineas.append("")
+    
     return "\n".join(lineas)
 
 
 def build_delivery(payload: Dict[str, Any]) -> str:
+    """Genera el contenido del comprobante de delivery - IDÉNTICO a utils/printer.py"""
     pedido = payload.get('pedido', {})
     cliente = payload.get('cliente', {})
     productos = payload.get('productos', [])
     ancho = 42
-    lineas = ["", _center("MUNDO WAFFLES", ancho), _center("=" * 20, ancho), ""]
-    lineas.append(f"Pedido #: {pedido.get('id', '')}")
-    lineas.append(f"Fecha: {_fmt_fecha(pedido.get('fecha_hora'))}")
+    
+    lineas = []
+    
+    # Título
     lineas.append("")
-    lineas.append(_line('-', ancho))
-    lineas.append("DATOS DEL CLIENTE")
-    lineas.append(_line('-', ancho))
+    lineas.append(_center("MUNDO WAFFLES", ancho))
+    lineas.append(_center("=" * 20, ancho))
+    lineas.append(_center("COMPROBANTE DELIVERY", ancho))
+    lineas.append("")
+    
+    # Número de pedido, fecha y hora
+    pedido_id = pedido.get('id', '')
+    fecha_hora = pedido.get('fecha_hora', '')
+    if fecha_hora:
+        try:
+            dt = datetime.fromisoformat(fecha_hora)
+            fecha_str = dt.strftime('%d/%m/%Y')
+            hora_str = dt.strftime('%H:%M')
+        except:
+            fecha_str = fecha_hora
+            hora_str = ''
+    else:
+        fecha_str = ''
+        hora_str = ''
+    
+    lineas.append(f"Pedido #:     {pedido_id}")
+    lineas.append(f"Fecha:        {fecha_str}")
+    lineas.append(f"Hora:         {hora_str}")
+    lineas.append("")
+    
+    # Datos del cliente
+    lineas.append("=" * ancho)
+    lineas.append("CLIENTE")
+    lineas.append("=" * ancho)
     if cliente:
-        if cliente.get('razon_social'):
-            lineas.append(f"Nombre: {cliente.get('razon_social')}")
-        if cliente.get('telefono'):
-            lineas.append(f"Tel: {cliente.get('telefono')}")
-        if cliente.get('direccion'):
-            lineas.append(f"Dir: {cliente.get('direccion')}")
+        nombre = cliente.get('razon_social', 'Sin nombre')
+        # Limitar nombre a ancho de ticket
+        lineas.append(f"Nombre: {nombre[:35]}")
+        telefono = cliente.get('telefono', 'Sin teléfono')
+        lineas.append(f"Teléfono: {telefono}")
+        direccion = cliente.get('direccion', 'Sin dirección')
+        # Ajustar dirección a múltiples líneas si es necesario
+        if len(direccion) > 35:
+            lineas.append(f"Dirección: {direccion[:35]}")
+            lineas.append(f"           {direccion[35:70]}")
+        else:
+            lineas.append(f"Dirección: {direccion}")
+    else:
+        lineas.append("Cliente no registrado")
     lineas.append("")
-    lineas.append(_line('-', ancho))
-    lineas.append("PRODUCTOS")
-    lineas.append(_line('-', ancho))
+    
+    # Detalle de productos
+    lineas.append("=" * ancho)
+    lineas.append("DETALLE DE PRODUCTOS")
+    lineas.append("=" * ancho)
+    
+    # Calcular subtotal si vienen precios individuales
+    subtotal_calculado = 0
     for item in productos:
-        lineas.append(f"{item.get('cantidad', 1)}x {str(item.get('nombre', '')).upper()}")
+        nombre = str(item.get('nombre', ''))
+        cantidad = item.get('cantidad', 1)
+        
+        # Formato: "2x Waffle Nutella"
+        lineas.append(f"{cantidad}x {nombre[:28]}")
+        
+        # Si viene precio_venta en el producto, mostrarlo
+        if 'precio_venta' in item:
+            precio = float(item.get('precio_venta', 0))
+            item_total = cantidad * precio
+            subtotal_calculado += item_total
+            
+            precio_fmt = _format_precio(precio)
+            total_fmt = _format_precio(item_total)
+            lineas.append(f"   {precio_fmt} c/u = {total_fmt}")
+    
     lineas.append("")
-    lineas.append(_line('=', ancho))
-    lineas.append(_center("DELIVERY", ancho))
-    lineas.append(_line('=', ancho))
-    lineas.append("\n\n")
+    lineas.append("=" * ancho)
+    
+    # Totales
+    costo_envio = float(pedido.get('costo_envio', 0))
+    
+    # Usar subtotal del pedido si está disponible, sino el calculado
+    if pedido.get('total'):
+        subtotal = float(pedido.get('total', 0))
+    else:
+        subtotal = subtotal_calculado
+    
+    total = subtotal + costo_envio
+    
+    subtotal_fmt = _format_precio(subtotal)
+    envio_fmt = _format_precio(costo_envio)
+    total_fmt = _format_precio(total)
+    
+    lineas.append(f"{'Subtotal:':<28} {subtotal_fmt:>11}")
+    lineas.append(f"{'Envío:':<28} {envio_fmt:>11}")
+    lineas.append("=" * ancho)
+    lineas.append(f"{'TOTAL:':<28} {total_fmt:>11}")
+    lineas.append("")
+    
+    # Mensaje final
+    lineas.append(_center("Gracias por su preferencia!", ancho))
+    lineas.append("")
+    lineas.append("")
+    
     return "\n".join(lineas)
 
 
@@ -251,19 +419,21 @@ def process_job(job_type: str, payload: Dict[str, Any], driver: Optional[str], f
 
     if job_type == 'comanda':
         contenido = build_comanda(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Comanda')
+        logger.info(f"🔍 COMANDA GENERADA:\n{contenido}")
+        logger.info(f"🔍 PAYLOAD RECIBIDO: {payload}")
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Comanda')
 
     if job_type == 'agregados':
         contenido = build_agregados(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Agregados')
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Agregados')
 
     if job_type == 'eliminados':
         contenido = build_eliminados(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 3, False, title='Eliminados')
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Eliminados')
 
     if job_type == 'delivery':
         contenido = build_delivery(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), 4, True, title='Delivery')
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Delivery')
 
     return {'ok': False, 'error': f'Tipo de trabajo no soportado: {job_type}'}
 
