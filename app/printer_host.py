@@ -103,7 +103,60 @@ def _format_precio(valor) -> str:
         return "$0"
 
 
-def build_recibo(payload: Dict[str, Any]) -> str:
+def build_recibo_mostrador(payload: Dict[str, Any]) -> str:
+    """Genera el recibo para venta en mostrador - SIN cliente ni envío"""
+    pedido = payload.get('pedido', {})
+    items = payload.get('items', [])
+    ancho = 42
+
+    lineas = []
+    lineas.append(_center("MUNDO WAFFLES", ancho))
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+
+    lineas.append(f"Pedido #: {pedido.get('id', '')}")
+    lineas.append(f"Fecha: {_fmt_fecha(pedido.get('fecha_hora'))}")
+    lineas.append("")
+
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+    lineas.append("ITEMS:")
+    lineas.append("")
+
+    for item in items:
+        nombre = str(item.get('nombre', ''))[:30]
+        cantidad = item.get('cantidad', 1)
+        precio = float(item.get('precio_venta', 0))
+        subtotal = float(item.get('subtotal', cantidad * precio))
+        
+        precio_fmt = _format_precio(precio)
+        subtotal_fmt = _format_precio(subtotal)
+        
+        lineas.append(f"{nombre}")
+        lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
+        atributos = item.get('atributos', {}) or {}
+        for k, v in atributos.items():
+            lineas.append(f"    - {k}: {v}")
+        lineas.append("")
+
+    lineas.append(_line('=', ancho))
+    lineas.append("")
+
+    total_val = float(pedido.get('total', 0))
+    total_fmt = _format_precio(total_val)
+
+    lineas.append(f"TOTAL:                 {total_fmt:>10}")
+    lineas.append("")
+
+    lineas.append("")
+    lineas.append(_center("Gracias por su compra!", ancho))
+    lineas.append("\n\n")
+
+    return "\n".join(lineas)
+
+
+def build_recibo_delivery(payload: Dict[str, Any]) -> str:
+    """Genera el recibo para entrega a domicilio - CON cliente y envío"""
     pedido = payload.get('pedido', {})
     cliente = payload.get('cliente', {})
     items = payload.get('items', [])
@@ -112,7 +165,7 @@ def build_recibo(payload: Dict[str, Any]) -> str:
 
     lineas = []
     lineas.append(_center("MUNDO WAFFLES", ancho))
-    lineas.append(_center("Delivery", ancho))
+    lineas.append(_center("DELIVERY", ancho))
     lineas.append(_line('=', ancho))
     lineas.append("")
 
@@ -120,12 +173,11 @@ def build_recibo(payload: Dict[str, Any]) -> str:
     lineas.append(f"Fecha: {_fmt_fecha(pedido.get('fecha_hora'))}")
     lineas.append("")
 
-    lineas.append("CLIENTE:")
     if cliente:
         if cliente.get('razon_social'):
-            lineas.append(f"  {cliente.get('razon_social')}")
+            lineas.append(f"  Nombre:  {cliente.get('razon_social')}")
         if cliente.get('telefono'):
-            lineas.append(f"  Tel: {cliente.get('telefono')}")
+            lineas.append(f"  Fono: {cliente.get('telefono')}")
         if cliente.get('direccion'):
             lineas.append(f"  Dir: {cliente.get('direccion')}")
     lineas.append("")
@@ -168,14 +220,19 @@ def build_recibo(payload: Dict[str, Any]) -> str:
     lineas.append(f"TOTAL:                 {total_fmt:>10}")
     lineas.append("")
 
-    estados = {1: "EN PREPARACION", 2: "EN CAMINO", 3: "ENTREGADO"}
-    estado = estados.get(pedido.get('estado_delivery'), 'DESCONOCIDO')
-    lineas.append(_center(f"Estado: {estado}", ancho))
     lineas.append("")
     lineas.append(_center("Gracias por su compra!", ancho))
     lineas.append("\n\n")
 
     return "\n".join(lineas)
+
+
+def build_recibo(payload: Dict[str, Any]) -> str:
+    """Wrapper para compatibilidad - detecta el tipo por presencia de cliente"""
+    cliente = payload.get('cliente')
+    if cliente and (cliente.get('razon_social') or cliente.get('telefono') or cliente.get('direccion')):
+        return build_recibo_delivery(payload)
+    return build_recibo_mostrador(payload)
 
 
 def build_comanda(payload: Dict[str, Any]) -> str:
@@ -237,7 +294,7 @@ def build_comanda(payload: Dict[str, Any]) -> str:
         # Limitar nombre a 35 caracteres para que quepa con cantidad
         lineas.append(f"{cantidad}x {nombre}")
     
-    lineas.append("")
+    lineas.append("\n\n")
     
     return "\n".join(lineas)
 
@@ -260,7 +317,7 @@ def build_agregados(payload: Dict[str, Any]) -> str:
         nombre = str(nombre).upper()[:35]
         lineas.append(f"{cantidad}x {nombre}")
     
-    lineas.append("")
+    lineas.append("\n\n")
     
     return "\n".join(lineas)
 
@@ -283,7 +340,7 @@ def build_eliminados(payload: Dict[str, Any]) -> str:
         nombre = str(nombre).upper()[:35]
         lineas.append(f"{cantidad}x {nombre}")
     
-    lineas.append("")
+    lineas.append("\n\n")
     
     return "\n".join(lineas)
 
@@ -421,15 +478,19 @@ def process_job(job_type: str, payload: Dict[str, Any], driver: Optional[str], f
         contenido = build_comanda(payload)
         logger.info(f"🔍 COMANDA GENERADA:\n{contenido}")
         logger.info(f"🔍 PAYLOAD RECIBIDO: {payload}")
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Comanda')
+        # Comanda siempre corta, aunque llegue cut=False (porque puede ser la única)
+        # Si hay agregados/eliminados, ellos manejan su propio corte
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, True, title='Comanda')
 
     if job_type == 'agregados':
         contenido = build_agregados(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Agregados')
+        # Agregados es normalmente el último documento de la secuencia, siempre corta
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, True, title='Agregados')
 
     if job_type == 'eliminados':
         contenido = build_eliminados(payload)
-        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, cut_val, title='Eliminados')
+        # Eliminados es normalmente el último documento de la secuencia, siempre corta
+        return _print_bytes(resolved_driver, contenido.encode('utf-8', errors='replace'), feed_val, True, title='Eliminados')
 
     if job_type == 'delivery':
         contenido = build_delivery(payload)

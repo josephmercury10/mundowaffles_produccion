@@ -251,6 +251,7 @@ class ThermalPrinter:
                     'cantidad': getattr(item, 'cantidad', 1),
                     'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
                     'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
+                    'atributos': {},
                 }
                 for item in items
             ],
