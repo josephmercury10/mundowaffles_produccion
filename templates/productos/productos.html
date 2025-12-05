@@ -27,10 +27,12 @@
                     <tr>
                         <th>Codigo</th>
                         <th>Nombre</th>
+                        <th>Precio</th>
                         <th>Descripción</th>
                         <th>Marca</th>
                         <th>Presentación</th>
                         <th>Categorías</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -39,6 +41,8 @@
                     <tr>
                         <td>{{ producto.codigo }}</td>
                         <td>{{ producto.nombre }}</td>
+                        <td>${{ producto.precio|format_price }}</td>
+                        <td>{{ producto.descripcion }}</td>
                         <td>{{ producto.marca.caracteristica.nombre }}</td>
                         <td>{{ producto.presentacion.caracteristica.nombre }}</td>
                         <td>

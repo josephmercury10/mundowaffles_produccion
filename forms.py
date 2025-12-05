@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, SubmitField, DateField, FileField, SelectMultipleField
-from wtforms.validators import DataRequired, Optional, length, ValidationError
+from wtforms import StringField, TextAreaField, SelectField, SubmitField, DateField, FileField, SelectMultipleField, DecimalField
+from wtforms.validators import DataRequired, Optional, length, ValidationError, NumberRange
 from flask_wtf.file import FileAllowed
 from src.models.repartidores_model import Repartidor
 import re
@@ -46,6 +46,7 @@ class ProductoForm(FlaskForm):
     codigo = StringField('Código:', validators=[DataRequired(), length(min=1, max=50)])
     nombre = StringField('Nombre:', validators=[DataRequired(message="El nombre es obligatorio."), length(min=1, max=80)])
     descripcion = TextAreaField('Descripción:', validators=[Optional(strip_whitespace=True), length(max=255)])
+    precio = DecimalField('Precio:', validators=[DataRequired(message="El precio es obligatorio."), NumberRange(min=0.01, message="El precio debe ser mayor a 0")])
     fechaVencimiento = DateField('Fecha de Vencimiento:', format='%Y-%m-%d', validators=[Optional()])
     imagen = FileField('Imagen:', validators=[Optional(), FileAllowed(['jpg', 'png'], 'Solo se permiten imágenes JPG y PNG.')])
     marcas = SelectField('Marca:', choices=[], validators=[DataRequired()])

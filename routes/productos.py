@@ -53,6 +53,7 @@ def create_producto():
                         codigo=form.codigo.data,
                         nombre=form.nombre.data,
                         descripcion=form.descripcion.data,
+                        precio=form.precio.data,
                         fecha_vencimiento=form.fechaVencimiento.data,
                         img_path=form.imagen.data.filename if form.imagen.data else None,
                         marca_id=form.marcas.data,
@@ -72,7 +73,6 @@ def create_producto():
                     db.session.commit()
                     flash('Producto creado exitosamente', 'success')
                     return redirect(url_for('productos.get_productos'))
-                    
                 except Exception as e:
                     db.session.rollback()
                     print(f"Error: {str(e)}")
@@ -123,13 +123,17 @@ def update_producto(id):
             producto.codigo = form.codigo.data
             producto.nombre = form.nombre.data
             producto.descripcion = form.descripcion.data
+            producto.precio = form.precio.data
             producto.fecha_vencimiento = form.fechaVencimiento.data
             producto.img_path = form.imagen.data.filename if form.imagen.data else None
             producto.marca_id = form.marcas.data
             producto.presentacione_id = form.presentaciones.data
 
             # Actualizar las categorías
-            producto.categorias.clear()
+            # Eliminar las categorías existentes
+            CategoriaProducto.query.filter_by(producto_id=producto.id).delete()
+            
+            # Agregar las nuevas categorías
             for categoria_id in form.categorias.data:
                 categoria_producto = CategoriaProducto(
                     producto_id=producto.id,
