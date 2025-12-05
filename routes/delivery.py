@@ -245,8 +245,8 @@ def finalizar_pedido():
         
         # ====== IMPRIMIR COMANDA PARA COCINA ======
         try:
-            from flask import current_app
-            printer = get_printer(current_app)
+            from utils.printer import get_printer_by_profile
+            printer = get_printer_by_profile(perfil='cocina', tipo='comanda')
             # Convertir carrito a lista para la impresora
             items_para_imprimir = list(carrito.values())
             printer.imprimir_comanda_cocina(venta, items_para_imprimir, "DELIVERY")
@@ -745,8 +745,8 @@ def confirmar_productos(pedido_id):
         
         # Imprimir comanda con productos agregados
         try:
-            from flask import current_app
-            printer = get_printer(current_app)
+            from utils.printer import get_printer_by_profile
+            printer = get_printer_by_profile(perfil='cocina', tipo='comanda')
             printer.imprimir_comanda_agregados(pedido, productos_agregados)
         except Exception as e:
             print(f"Error al imprimir comanda: {str(e)}")
@@ -823,8 +823,8 @@ def confirmar_eliminacion(pedido_id):
         
         # Imprimir comanda de eliminación
         try:
-            from flask import current_app
-            printer = get_printer(current_app)
+            from utils.printer import get_printer_by_profile
+            printer = get_printer_by_profile(perfil='cocina', tipo='comanda')
             printer.imprimir_comanda_eliminados(pedido, productos_eliminados)
         except Exception as e:
             print(f"Error al imprimir comanda eliminación: {str(e)}")
@@ -850,8 +850,9 @@ def imprimir_pedido(pedido_id):
         items = pedido.productos  # Relación con ProductoVenta
         total_con_envio = float(pedido.total) + (float(pedido.costo_envio) if pedido.costo_envio else 0)
         
-        # Obtener instancia de impresora
-        printer = get_printer()
+        # Obtener instancia de impresora por perfil
+        from utils.printer import get_printer_by_profile
+        printer = get_printer_by_profile(perfil='delivery', tipo='recibo')
         
         # Imprimir
         resultado = printer.imprimir_pedido(pedido, cliente, items, total_con_envio)

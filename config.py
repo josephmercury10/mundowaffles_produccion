@@ -4,6 +4,11 @@ import os
 class DevelopmentConfig():
     SQLALCHEMY_DATABASE_URI = 'mysql://root:@localhost:3309/dbmundo'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 280,  # Reconecta cada 280 segundos (timeout MySQL)
+        'pool_pre_ping': True,  # Verifica conexión antes de usar
+    }
     DEBUG = True
     MYSQL_HOST = 'localhost'
     MYSQL_USER = 'root'
@@ -40,6 +45,12 @@ class ProductionConfig():
     # PrintHost: Cliente debe configurar en WSGI (el servidor solo envía /print/job)
     # Ejemplo: os.environ['PRINTHOST_URL'] = 'http://192.168.1.50:8765'
     PRINTHOST_URL = os.environ.get('PRINTHOST_URL', None)
+    
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 280,  # Reconecta cada 280 segundos (PythonAnywhere timeout es 300)
+        'pool_pre_ping': True,  # Verifica conexión antes de usar
+    }
 
 
 config = {

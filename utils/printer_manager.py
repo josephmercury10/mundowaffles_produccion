@@ -25,17 +25,56 @@ def listar_impresoras_windows() -> List[str]:
 
 def obtener_por_perfil(perfil: str, tipo: Optional[str] = None) -> Optional[Printer]:
     import json
-    printers = Printer.query.filter_by(estado=1).all()
-    for p in printers:
-        try:
-            perfiles = json.loads(p.perfil) if isinstance(p.perfil, str) else p.perfil
-            tipos = json.loads(p.tipo) if isinstance(p.tipo, str) else p.tipo
-            if perfil in perfiles:
-                if tipo is None or tipo in tipos:
-                    return p
-        except:
-            continue
-    return None
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🔍 Buscando impresora: perfil={perfil}, tipo={tipo}")
+    
+    try:
+        printers = Printer.query.filter_by(estado=1).all()
+        logger.info(f"📋 Total impresoras en BD: {len(printers)}")
+        
+        for p in printers:
+            logger.info(f"  📌 Revisando: {p.nombre} (id={p.id})")
+            try:
+                # Log valores crudos antes de parsear
+                logger.info(f"     perfil RAW: {repr(p.perfil)}")
+                logger.info(f"     tipo RAW: {repr(p.tipo)}")
+                
+                perfiles = json.loads(p.perfil) if isinstance(p.perfil, str) else p.perfil
+                tipos = json.loads(p.tipo) if isinstance(p.tipo, str) else p.tipo
+                
+                logger.info(f"     Perfiles parseados: {perfiles}")
+                logger.info(f"     Tipos parseados: {tipos}")
+                logger.info(f"     ¿'{perfil}' in {perfiles}? {perfil in perfiles}")
+                logger.info(f"     ¿'{tipo}' in {tipos}? {tipo in tipos if tipo else 'N/A'}")
+                
+                if perfil in perfiles:
+                    if tipo is None or tipo in tipos:
+                        logger.info(f"✅ Impresora encontrada: {p.nombre}")
+                        logger.info(f"   driver_name={p.driver_name}, printhost_url={p.printhost_url}")
+                        return p
+                    else:
+                        logger.info(f"   ⚠️ Perfil coincide pero tipo '{tipo}' no está en {tipos}")
+                else:
+                    logger.info(f"   ⚠️ Perfil '{perfil}' no está en {perfiles}")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"  ⚠️ Error parsing JSON para {p.nombre}: {e}")
+                continue
+            except Exception as e:
+                logger.warning(f"  ⚠️ Error procesando {p.nombre}: {e}")
+                import traceback
+                logger.warning(traceback.format_exc())
+                continue
+        
+        logger.warning(f"❌ No se encontró impresora con perfil={perfil}, tipo={tipo}")
+        return None
+    except Exception as e:
+        logger.error(f"❌ Error en obtener_por_perfil: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return None
 
 
 def guardar_driver(printer_id: int, driver_name: str) -> bool:

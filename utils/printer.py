@@ -1,8 +1,20 @@
 import platform
 import logging
 from datetime import datetime
+import sys
 
 logger = logging.getLogger(__name__)
+
+# DEBUG: Escribir información de diagnóstico a un archivo
+debug_file = "/tmp/printer_debug.log" if platform.system() != 'Windows' else "C:\\Temp\\printer_debug.log"
+try:
+    with open(debug_file, "a") as f:
+        f.write(f"\n[{datetime.now()}] Cargando utils/printer.py\n")
+        f.write(f"  Sistema: {platform.system()}\n")
+        f.write(f"  Python: {sys.version}\n")
+        f.write(f"  Path: {sys.path[:3]}\n")
+except:
+    pass
 
 # Imports condicionales para Windows (win32print solo disponible en Windows)
 HAS_WIN32 = platform.system().lower() == 'windows'
@@ -18,13 +30,46 @@ else:
 
 # PrintHost client (para Linux/PythonAnywhere)
 PRINTHOST_ENABLED = not HAS_WIN32
+
 if PRINTHOST_ENABLED:
     try:
+        # DEBUG: Log de intento de import
+        try:
+            with open(debug_file, "a") as f:
+                f.write(f"[{datetime.now()}] Intentando importar PrintHostClient...\n")
+        except:
+            pass
+        
         from utils.print_client import PrintHostClient
         logger.info("PrintHostClient disponible para impresión remota")
-    except ImportError:
+        
+        try:
+            with open(debug_file, "a") as f:
+                f.write(f"[{datetime.now()}] PrintHostClient importado exitosamente\n")
+        except:
+            pass
+            
+    except ImportError as e:
         PRINTHOST_ENABLED = False
-        logger.warning("PrintHostClient no disponible")
+        logger.error(f"ImportError cargando PrintHostClient: {e}")
+        try:
+            with open(debug_file, "a") as f:
+                f.write(f"[{datetime.now()}] ImportError: {e}\n")
+                import traceback
+                f.write(traceback.format_exc())
+        except:
+            pass
+            
+    except Exception as e:
+        PRINTHOST_ENABLED = False
+        logger.error(f"Error inesperado cargando PrintHostClient: {type(e).__name__}: {e}")
+        try:
+            with open(debug_file, "a") as f:
+                f.write(f"[{datetime.now()}] Exception ({type(e).__name__}): {e}\n")
+                import traceback
+                f.write(traceback.format_exc())
+        except:
+            pass
 
 # Comandos ESC/POS para impresoras térmicas
 ESC = b'\x1b'  # Escape
@@ -57,17 +102,19 @@ class ThermalPrinter:
         self.printer = None
         self.printhost_client = None
         
+        logger.debug(f"ThermalPrinter.__init__: printer_name={printer_name}, printhost_url={printhost_url}, HAS_WIN32={HAS_WIN32}, PRINTHOST_ENABLED={PRINTHOST_ENABLED}")
+        
         if HAS_WIN32:
             # ===== MODO WINDOWS: win32print local =====
             try:
                 if not printer_name:
                     self.printer = win32print.GetDefaultPrinter()
-                    logger.info(f"Usando impresora predeterminada: {self.printer}")
+                    logger.info(f"✅ Usando impresora predeterminada: {self.printer}")
                 else:
                     self.printer = printer_name
-                    logger.info(f"Impresora seleccionada: {self.printer}")
+                    logger.info(f"✅ Impresora Windows seleccionada: {self.printer}")
             except Exception as e:
-                logger.error(f"Error al inicializar impresora: {str(e)}")
+                logger.error(f"❌ Error al inicializar impresora Windows: {str(e)}")
                 self.printer = None
         
         elif PRINTHOST_ENABLED and printhost_url:
@@ -77,12 +124,26 @@ class ThermalPrinter:
                 if self.printhost_client.health_check():
                     logger.info(f"✅ PrintHost conectado: {printhost_url}")
                 else:
-                    logger.warning(f"⚠️ PrintHost no responde: {printhost_url}")
+                    logger.warning(f"⚠️ PrintHost no responde a health check: {printhost_url}")
             except Exception as e:
-                logger.error(f"Error al conectar PrintHost: {e}")
+                logger.error(f"❌ Error al conectar PrintHost en {printhost_url}: {e}")
                 self.printhost_client = None
         else:
-            logger.warning("No hay método de impresión disponible")
+            logger.warning(f"⚠️ No hay método de impresión disponible (HAS_WIN32={HAS_WIN32}, PRINTHOST_ENABLED={PRINTHOST_ENABLED}, printhost_url={printhost_url})")
+
+    # ===== Funciones de formato =====
+    def _format_precio(self, valor):
+        """
+        Formatea un valor numérico como precio en pesos chileno
+        Ejemplo: 1000 -> $1.000, 1500000 -> $1.500.000
+        """
+        try:
+            valor_int = int(float(valor))
+            # Convertir a string y agregar separadores de miles
+            valor_str = f"{valor_int:,}".replace(",", ".")
+            return f"${valor_str}"
+        except (ValueError, TypeError):
+            return "$0"
 
     # ===== Serialización de datos para enviar a PrintHost =====
     def _serialize_pedido(self, pedido):
@@ -99,11 +160,20 @@ class ThermalPrinter:
         if not cliente or not getattr(cliente, 'persona', None):
             return {}
         persona = cliente.persona
+        
+        # Serializar documento correctamente
+        documento_str = None
+        if hasattr(persona, 'documento') and persona.documento:
+            if hasattr(persona.documento, 'tipo_documento'):
+                documento_str = persona.documento.tipo_documento
+            else:
+                documento_str = str(persona.documento)
+        
         return {
             'razon_social': getattr(persona, 'razon_social', None),
             'telefono': getattr(persona, 'telefono', None),
             'direccion': getattr(persona, 'direccion', None),
-            'documento': getattr(persona, 'documento', None),
+            'documento': documento_str,
         }
 
     def _serialize_items(self, items):
@@ -207,7 +277,7 @@ class ThermalPrinter:
         Funciona en Windows (win32print) y Linux (PrintHost)
         """
         # Generar contenido del recibo
-        contenido = self._generar_recibo(pedido, cliente, items, total_con_envio)
+        contenido = self._generar_recibo(pedido, cliente, items)
         
         # Seleccionar método de impresión
         if PRINTHOST_ENABLED and self.printhost_client:
@@ -252,31 +322,7 @@ class ThermalPrinter:
             logger.error(f"❌ Error impresión local: {str(e)}")
             return False
     
-    def _imprimir_remoto_printhost(self, contenido, pedido_id, tipo='raw'):
-        """Imprime remotamente via PrintHost (HTTP)"""
-        if not self.printhost_client:
-            logger.error("PrintHost no disponible")
-            return False
-        
-        try:
-            resultado = self.printhost_client.print_job(
-                job_type=tipo,
-                payload={'content': contenido, 'pedido_id': pedido_id},
-                driver=self.printer_name or "EPSON TM-T88V Receipt5",
-                feed=5,
-                cut=True,
-            )
-            if resultado.get('ok'):
-                logger.info(f"✅ Impreso remotamente via PrintHost (pedido #{pedido_id})")
-                return True
-            error_msg = resultado.get('error', 'Error desconocido')
-            logger.error(f"❌ PrintHost error: {error_msg}")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Error impresión remota: {e}")
-            return False
-    
-    def _generar_recibo(self, pedido, cliente, items, total_con_envio):
+    def _generar_recibo(self, pedido, cliente, items):
         """Genera el contenido del recibo en formato texto"""
         
         lineas = []
@@ -296,8 +342,8 @@ class ThermalPrinter:
         # Información del cliente
         lineas.append("CLIENTE:")
         if cliente and cliente.persona:
-            lineas.append(f"  {cliente.persona.razon_social}")
-            lineas.append(f"  Tel: {cliente.persona.telefono}")
+            lineas.append(f"  Nombre:  {cliente.persona.razon_social}")
+            lineas.append(f"  Fono: {cliente.persona.telefono}")
             lineas.append(f"  Dir: {cliente.persona.direccion}")
         lineas.append("")
         
@@ -314,8 +360,11 @@ class ThermalPrinter:
             precio_venta = float(item.precio_venta)
             subtotal = cantidad * precio_venta
             
+            precio_fmt = self._format_precio(precio_venta)
+            subtotal_fmt = self._format_precio(subtotal)
+            
             lineas.append(f"{producto}")
-            lineas.append(f"  x{cantidad} @ ${precio_venta:.2f} = ${subtotal:.2f}")
+            lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
             
             # Atributos si existen
             if item.atributos_seleccionados:
@@ -337,26 +386,20 @@ class ThermalPrinter:
         costo_envio = float(pedido.costo_envio) if pedido.costo_envio else 0
         total = subtotal + costo_envio
         
-        lineas.append(f"Subtotal:              ${subtotal:>8.2f}")
-        lineas.append(f"Envío:                 ${costo_envio:>8.2f}")
+        subtotal_fmt = self._format_precio(subtotal)
+        envio_fmt = self._format_precio(costo_envio)
+        total_fmt = self._format_precio(total)
+        
+        lineas.append(f"Subtotal:              {subtotal_fmt:>10}")
+        lineas.append(f"Envío:                 {envio_fmt:>10}")
         lineas.append("-" * ancho)
-        lineas.append(f"TOTAL:                 ${total:>8.2f}")
+        lineas.append(f"TOTAL:                 {total_fmt:>10}")
         lineas.append("")
         lineas.append("")
         
-        # Estado
-        estado_texto = {
-            1: "EN PREPARACION",
-            2: "EN CAMINO",
-            3: "ENTREGADO"
-        }.get(pedido.estado_delivery, "DESCONOCIDO")
-        
-        lineas.append(self._centrar(f"Estado: {estado_texto}", ancho))
         lineas.append("")
         lineas.append(self._centrar("Gracias por su compra!", ancho))
-        lineas.append("")
-        lineas.append("")
-        lineas.append("")
+
         
         return "\n".join(lineas)
     
@@ -382,18 +425,36 @@ class ThermalPrinter:
         return False
     
     def _generar_comanda_cocina(self, pedido, items, tipo_pedido):
-        """Genera el contenido de la comanda para cocina - versión compacta"""
+        """
+        Genera el contenido de la comanda para cocina - optimizado
+        Formato:
+        - Tipo de venta (MOSTRADOR/DELIVERY) en grande
+        - Hora y cliente
+        - Productos en letra grande
+        - Mínimo papel posible
+        """
         
         lineas = []
         ancho = 42
         
-        # Encabezado mínimo
+        # ===== ENCABEZADO COMPACTO =====
+        # Tipo de venta (MOSTRADOR/DELIVERY) - centrado
         lineas.append("")
-        lineas.append(f"#%s   %s" % (pedido.id, tipo_pedido))
-        lineas.append(pedido.fecha_hora.strftime('%d/%m %H:%M'))
-        lineas.append("-" * ancho)
+        lineas.append(self._centrar(f"=== {tipo_pedido} ===", ancho))
         
-        # Productos con letra grande (doble altura simulada con espaciado)
+        # Pedido #, fecha y hora en una línea
+        hora = pedido.fecha_hora.strftime('%H:%M')
+        lineas.append(f"#{pedido.id:4d}  {hora}")
+        
+        # Cliente si disponible
+        if hasattr(pedido, 'cliente') and pedido.cliente and hasattr(pedido.cliente, 'persona'):
+            cliente_nombre = pedido.cliente.persona.razon_social[:20]  # Limitar a 20 caracteres
+            lineas.append(f"CLIENTE: {cliente_nombre}")
+        
+        lineas.append("")
+        
+        # ===== PRODUCTOS (lo más importante) =====
+        # Sin línea divisoria arriba para ahorrar papel
         for item in items:
             if isinstance(item, dict):
                 cantidad = item['cantidad']
@@ -402,10 +463,11 @@ class ThermalPrinter:
                 cantidad = item.cantidad
                 nombre = item.producto.nombre if hasattr(item, 'producto') else str(item)
             
-            # Formato compacto: cantidad x nombre
-            lineas.append(f"{cantidad}x {nombre.upper()}")
+            # Formato: [cantidad]x NOMBRE (en mayúsculas para legibilidad)
+            # Limitar nombre a 35 caracteres para que quepa con cantidad
+            nombre_limpio = nombre.upper()[:35]
+            lineas.append(f"{cantidad}x {nombre_limpio}")
         
-        lineas.append("-" * ancho)
         lineas.append("")
         
         return "\n".join(lineas)
@@ -417,20 +479,21 @@ class ThermalPrinter:
             ancho = 42
             
             lineas.append("")
-            lineas.append(f"#%s   AGREGADO" % pedido.id)
-            lineas.append("-" * ancho)
+            lineas.append(self._centrar("=== AGREGADOS ===", ancho))
+            lineas.append(f"Pedido #{pedido.id}")
+            lineas.append("")
             
             for item in productos:
-                lineas.append(f"{item['cantidad']}x {item['nombre'].upper()}")
+                nombre = item['nombre'].upper()[:35]
+                lineas.append(f"{item['cantidad']}x {nombre}")
             
-            lineas.append("-" * ancho)
             lineas.append("")
             
             contenido = "\n".join(lineas)
             
             if PRINTHOST_ENABLED and self.printhost_client:
                 payload = self._payload_agregados(pedido, productos)
-                return self._enviar_printhost('agregados', payload, feed=3, cut=False)
+                return self._enviar_printhost('agregados', payload, feed=2, cut=False)
             if HAS_WIN32 and self.printer:
                 return self._imprimir_local_windows(contenido, "Comanda Agregados")
             logger.error("No hay impresora configurada")
@@ -447,20 +510,21 @@ class ThermalPrinter:
             ancho = 42
             
             lineas.append("")
-            lineas.append(f"#%s   ELIMINADO" % pedido.id)
-            lineas.append("-" * ancho)
+            lineas.append(self._centrar("=== ELIMINADOS ===", ancho))
+            lineas.append(f"Pedido #{pedido.id}")
+            lineas.append("")
             
             for item in productos:
-                lineas.append(f"{item['cantidad']}x {item['nombre'].upper()}")
+                nombre = item['nombre'].upper()[:35]
+                lineas.append(f"{item['cantidad']}x {nombre}")
             
-            lineas.append("-" * ancho)
             lineas.append("")
             
             contenido = "\n".join(lineas)
             
             if PRINTHOST_ENABLED and self.printhost_client:
                 payload = self._payload_eliminados(pedido, productos)
-                return self._enviar_printhost('eliminados', payload, feed=3, cut=False)
+                return self._enviar_printhost('eliminados', payload, feed=2, cut=False)
             if HAS_WIN32 and self.printer:
                 return self._imprimir_local_windows(contenido, "Comanda Eliminados")
             logger.error("No hay impresora configurada")
@@ -495,30 +559,40 @@ class ThermalPrinter:
         lineas.append("")
         lineas.append(self._centrar("MUNDO WAFFLES", ancho))
         lineas.append(self._centrar("=" * 20, ancho))
+        lineas.append(self._centrar("COMPROBANTE DELIVERY", ancho))
         lineas.append("")
         
         # Número de pedido, fecha y hora
-        lineas.append(f"Pedido #: {pedido.id}")
-        lineas.append(f"Fecha: {pedido.fecha_hora.strftime('%d/%m/%Y')}")
-        lineas.append(f"Hora:  {pedido.fecha_hora.strftime('%H:%M')}")
+        lineas.append(f"Pedido #:     {pedido.id}")
+        lineas.append(f"Fecha:        {pedido.fecha_hora.strftime('%d/%m/%Y')}")
+        lineas.append(f"Hora:         {pedido.fecha_hora.strftime('%H:%M')}")
         lineas.append("")
         
         # Datos del cliente
-        lineas.append("-" * ancho)
-        lineas.append("DATOS DEL CLIENTE")
-        lineas.append("-" * ancho)
+        lineas.append("=" * ancho)
+        lineas.append("CLIENTE")
+        lineas.append("=" * ancho)
         if cliente and cliente.persona:
-            lineas.append(f"Nombre: {cliente.persona.razon_social or 'Sin nombre'}")
-            lineas.append(f"Fono:   {cliente.persona.telefono or 'Sin telefono'}")
-            lineas.append(f"Dir:    {cliente.persona.direccion or 'Sin direccion'}")
+            nombre = cliente.persona.razon_social or 'Sin nombre'
+            # Limitar nombre a ancho de ticket
+            lineas.append(f"Nombre: {nombre[:35]}")
+            telefono = cliente.persona.telefono or 'Sin teléfono'
+            lineas.append(f"Teléfono: {telefono}")
+            direccion = cliente.persona.direccion or 'Sin dirección'
+            # Ajustar dirección a múltiples líneas si es necesario
+            if len(direccion) > 35:
+                lineas.append(f"Dirección: {direccion[:35]}")
+                lineas.append(f"           {direccion[35:70]}")
+            else:
+                lineas.append(f"Dirección: {direccion}")
         else:
             lineas.append("Cliente no registrado")
         lineas.append("")
         
         # Detalle de productos
-        lineas.append("-" * ancho)
+        lineas.append("=" * ancho)
         lineas.append("DETALLE DE PRODUCTOS")
-        lineas.append("-" * ancho)
+        lineas.append("=" * ancho)
         
         subtotal = 0
         for item in productos:
@@ -528,20 +602,28 @@ class ThermalPrinter:
             item_total = cantidad * precio
             subtotal += item_total
             
-            lineas.append(f"{cantidad}x {nombre[:25]}")
-            lineas.append(f"   ${precio:,.0f} c/u = ${item_total:,.0f}")
+            # Formato: "2x Waffle Nutella"
+            lineas.append(f"{cantidad}x {nombre[:28]}")
+            # Precio unitario y total
+            precio_fmt = self._format_precio(precio)
+            total_fmt = self._format_precio(item_total)
+            lineas.append(f"   {precio_fmt} c/u = {total_fmt}")
         
         lineas.append("")
-        lineas.append("-" * ancho)
+        lineas.append("=" * ancho)
         
         # Totales
         costo_envio = float(pedido.costo_envio or 0)
         total = subtotal + costo_envio
         
-        lineas.append(f"{'Subtotal:':<30} ${subtotal:,.0f}")
-        lineas.append(f"{'Costo Envio:':<30} ${costo_envio:,.0f}")
-        lineas.append("-" * ancho)
-        lineas.append(f"{'TOTAL:':<30} ${total:,.0f}")
+        subtotal_fmt = self._format_precio(subtotal)
+        envio_fmt = self._format_precio(costo_envio)
+        total_fmt = self._format_precio(total)
+        
+        lineas.append(f"{'Subtotal:':<28} {subtotal_fmt:>11}")
+        lineas.append(f"{'Envío:':<28} {envio_fmt:>11}")
+        lineas.append("=" * ancho)
+        lineas.append(f"{'TOTAL:':<28} {total_fmt:>11}")
         lineas.append("")
         
         # Mensaje final
@@ -590,30 +672,32 @@ class ThermalPrinter:
         lineas.append("ITEMS:")
         lineas.append("")
         
+        total = 0
         for item in items:
             cantidad = item.cantidad
             producto = item.producto.nombre[:30]
             precio_venta = float(item.precio_venta)
             subtotal = cantidad * precio_venta
+            total += subtotal
+            
+            precio_fmt = self._format_precio(precio_venta)
+            subtotal_fmt = self._format_precio(subtotal)
             
             lineas.append(f"{producto}")
-            lineas.append(f"  x{cantidad} @ ${precio_venta:.2f} = ${subtotal:.2f}")
+            lineas.append(f"  x{cantidad} @ {precio_fmt} = {subtotal_fmt}")
             lineas.append("")
         
         # Resumen
         lineas.append(self._centrar("=" * ancho, ancho))
         lineas.append("")
         
-        total = float(pedido.total)
-        lineas.append("-" * ancho)
-        lineas.append(f"TOTAL:                 ${total:>8.2f}")
+        total_fmt = self._format_precio(total)
+        lineas.append(f"TOTAL:                 {total_fmt:>10}")
         lineas.append("")
         lineas.append("")
         
         lineas.append(self._centrar("Gracias por su compra!", ancho))
-        lineas.append("")
-        lineas.append("")
-        lineas.append("")
+
         
         return "\n".join(lineas)
     
@@ -657,13 +741,25 @@ def get_printer_by_profile(perfil: str, tipo: str = None, app=None):
         app = current_app
     
     printhost_url = app.config.get('PRINTHOST_URL', None)
+    logger.info(f"🔍 get_printer_by_profile: perfil={perfil}, tipo={tipo}, PRINTHOST_URL_config={printhost_url}")
     
     try:
         from utils.printer_manager import obtener_por_perfil
         pr = obtener_por_perfil(perfil, tipo)
+        logger.info(f"Resultado obtener_por_perfil: {pr}")
+        
         if pr and pr.driver_name:
-            return ThermalPrinter(pr.driver_name, pr.printhost_url or printhost_url)
-    except Exception:
-        pass
+            logger.info(f"Impresora BD: nombre={pr.nombre}, driver={pr.driver_name}, printhost_url='{pr.printhost_url}'")
+            # Usar printhost_url de BD si existe y no está vacío
+            url_final = pr.printhost_url if pr.printhost_url and pr.printhost_url.strip() else printhost_url
+            logger.info(f"✅ URL final seleccionada: {url_final}")
+            return ThermalPrinter(pr.driver_name, url_final)
+        else:
+            logger.warning(f"❌ No se encontró impresora con perfil={perfil}, tipo={tipo}")
+    except Exception as e:
+        logger.error(f"❌ Error al buscar impresora por perfil: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
     
+    logger.info("⚠️ Usando impresora por defecto desde config")
     return get_printer(app)

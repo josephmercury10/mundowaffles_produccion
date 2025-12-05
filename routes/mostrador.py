@@ -177,8 +177,8 @@ def guardar_pedido():
         
         # ====== IMPRIMIR COMANDA PARA COCINA ======
         try:
-            from flask import current_app
-            printer = get_printer(current_app)
+            from utils.printer import get_printer_by_profile
+            printer = get_printer_by_profile(perfil='cocina', tipo='comanda')
             # Convertir carrito a lista para la impresora
             items_para_imprimir = list(carrito.values())
             printer.imprimir_comanda_cocina(venta, items_para_imprimir, "MOSTRADOR")
@@ -344,8 +344,9 @@ def imprimir_pedido(pedido_id):
         pedido = Venta.query.get_or_404(pedido_id)
         items = ProductoVenta.query.filter_by(venta_id=pedido_id).all()
         
-        # Obtener instancia de impresora
-        printer = get_printer()
+        # Obtener instancia de impresora por perfil
+        from utils.printer import get_printer_by_profile
+        printer = get_printer_by_profile(perfil='mostrador', tipo='venta')
         
         # Imprimir (usando método simplificado para mostrador)
         resultado = printer.imprimir_pedido_mostrador(pedido, items)
