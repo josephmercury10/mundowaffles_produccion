@@ -55,7 +55,7 @@
     </div>
 
     <!-- Botones de acción -->
-    {% if pedido.estado_delivery == 1 %}
+    {% if pedido.estado_delivery == 1 or pedido.estado_delivery == '1' %}
         {% if not esta_pagado %}
             <button class="btn btn-primary w-100 mb-2" 
                     data-bs-toggle="modal" 
@@ -74,7 +74,7 @@
             </button>
         {% endif %}
         
-    {% elif pedido.estado_delivery == 2 %}
+    {% elif pedido.estado_delivery == 2 or pedido.estado_delivery == '2' %}
         <button class="btn btn-success w-100"
                 hx-post="/delivery/cambiar_estado/{{ pedido.id }}/3"
                 hx-target="#estado-pedido-container"
@@ -82,7 +82,7 @@
             ✅ Marcar como Entregado
         </button>
         
-    {% elif pedido.estado_delivery == 3 %}
+    {% elif pedido.estado_delivery == 3 or pedido.estado_delivery == '3' %}
         <div class="alert alert-success text-center mb-2 py-2">
             <strong>✅ Pedido Entregado</strong><br>
             <small>{{ pedido.numero_comprobante }}</small>
@@ -92,5 +92,8 @@
                 hx-swap="none">
             🖨️ Reimprimir
         </button>
+    {% else %}
+        <!-- Debug: estado no reconocido -->
+        <div class="alert alert-info">Estado: {{ pedido.estado_delivery }} (tipo: {{ pedido.estado_delivery.__class__.__name__ }})</div>
     {% endif %}
 </div>

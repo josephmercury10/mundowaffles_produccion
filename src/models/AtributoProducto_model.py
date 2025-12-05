@@ -18,7 +18,7 @@ class AtributoProducto(db.Model):
 
     # Relaciones
     valores = db.relationship('ValorAtributo', backref='atributo', lazy=True, cascade='all, delete-orphan')
-    productos = db.relationship('ProductoAtributo', backref='atributo', lazy=True, cascade='all, delete-orphan')
+    # La relación con ProductoAtributo se define en Producto_model.py
     
     def __repr__(self):
         return f'<AtributoProducto {self.nombre}>'

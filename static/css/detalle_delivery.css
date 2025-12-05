@@ -98,6 +98,16 @@
             padding: 0 1rem 1rem 1rem;
         }
 
+        /* Estado del pedido - asegurar que se muestre todo el contenido */
+        #estado-pedido-container {
+            overflow: visible;
+        }
+        
+        #estado-pedido-container .estado-actual {
+            display: block !important;
+            overflow: visible;
+        }
+
         /* Header del pedido */
         .order-header {
             background: var(--order-header);

@@ -1,0 +1,88 @@
+<div class="productos-grid-container">
+    <input type="text" class="form-control form-control-sm mb-2" 
+           id="buscar-producto-agregar-mostrador" 
+           placeholder="🔍 Buscar producto..."
+           onkeyup="filtrarProductosAgregarMostrador(this.value)">
+    <div class="row g-2" id="grid-productos-agregar-mostrador">
+    {% for producto in productos %}
+    <div class="col-4 col-md-3 producto-agregar-item-mostrador" data-nombre="{{ producto.nombre|lower }}">
+        <div class="card h-100" style="cursor:pointer;"
+             onclick="agregarProductoDetalleMostrador({{ producto.id }}, '{{ producto.nombre|replace("'", "\\'") }}', {{ producto.precio }}, {{ pedido_id }})">
+            {% if producto.img_path %}
+            <img src="{{ url_for('static', filename='uploads/images/' + producto.img_path) }}" 
+                 class="card-img-top" style="height:50px;object-fit:cover;">
+            {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:50px;">
+                <span class="text-muted" style="font-size:1.2rem;">🍽️</span>
+            </div>
+            {% endif %}
+            <div class="card-body p-1 text-center">
+                <small class="d-block text-truncate" style="font-size:0.7rem;">{{ producto.nombre }}</small>
+                <span class="text-primary fw-bold" style="font-size:0.75rem;">${{ producto.precio|format_price }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-3">
+        <p>No hay productos disponibles</p>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+
+<script>
+function filtrarProductosAgregarMostrador(texto) {
+    const filtro = texto.toLowerCase();
+    document.querySelectorAll('.producto-agregar-item-mostrador').forEach(item => {
+        const nombre = item.dataset.nombre;
+        item.style.display = nombre.includes(filtro) ? '' : 'none';
+    });
+}
+
+async function agregarProductoDetalleMostrador(productoId, nombre, precio, pedidoId) {
+    try {
+        // Verificar si el producto tiene atributos
+        const response = await fetch(`/mostrador/tiene_atributos/${productoId}`);
+        const data = await response.json();
+        
+        if (data.tiene_atributos) {
+            // Mostrar modal de extras con modo detalle activado
+            // La función global del modal maneja esto
+            abrirModalExtrasMostrador(productoId, nombre, precio, true, pedidoId);
+        } else {
+            // Agregar directamente sin extras
+            agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, [], pedidoId);
+        }
+    } catch (error) {
+        console.error('Error verificando atributos:', error);
+        // En caso de error, agregar sin extras
+        agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, [], pedidoId);
+    }
+}
+
+function agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, extras, pedidoId) {
+    // Preparar datos para enviar
+    const formData = new FormData();
+    formData.append('producto_id', productoId);
+    formData.append('nombre', nombre);
+    formData.append('precio', precio);
+    formData.append('extras', JSON.stringify(extras));
+    
+    // Enviar al carrito temporal
+    fetch(`/mostrador/pedido/${pedidoId}/carrito_temp/agregar`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('items-container').innerHTML = html;
+        // Procesar HTMX en el nuevo contenido
+        if (typeof htmx !== 'undefined') {
+            htmx.process(document.getElementById('items-container'));
+        }
+    })
+    .catch(error => {
+        console.error('Error agregando al carrito temporal:', error);
+    });
+}
+</script>

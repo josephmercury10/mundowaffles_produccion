@@ -67,8 +67,14 @@
                         <!-----------------------Categorías-------------------------------------------->
                         <div class="col-md-6 mb-2">
                             {{ form.categorias.label(class="form-label") }}
-                            <small class="text-muted d-block mb-2">Mantenga presionada la tecla Ctrl (Command en Mac) para seleccionar múltiples categorías</small>
-                            {{ form.categorias(class="form-control", multiple=True, size=5, title="Seleccione las categorías") }}
+                            <small class="text-muted d-block mb-2">Mantenga presionada la tecla Ctrl para seleccionar múltiples</small>
+                            {{ form.categorias(class="form-control", multiple=True, size=4, title="Seleccione las categorías") }}
+                        </div>
+                        <!-----------------------Extras/Atributos-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.atributos.label(class="form-label") }}
+                            <small class="text-muted d-block mb-2">Extras disponibles para este producto</small>
+                            {{ form.atributos(class="form-control", multiple=True, size=4, title="Seleccione los extras") }}
                         </div>
 
                         <div class="col-12 text-center">

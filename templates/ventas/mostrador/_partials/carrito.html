@@ -15,27 +15,24 @@
                            placeholder="🔍 Buscar producto...">
                 </div>
                 <div class="card-body" style="max-height: 380px; overflow-y: auto;">
-                    <div class="row" id="productos-grid">
+                    <div class="row g-2" id="productos-grid">
                         {% for producto in productos %}
-                        <div class="col-6 col-lg-3 mb-2 producto-item" data-nombre="{{ producto.nombre|lower }}">
+                        <div class="col-4 col-md-3 producto-item" data-nombre="{{ producto.nombre|lower }}">
                             <div class="card product-card h-100" style="cursor: pointer;"
-                                 hx-post="/mostrador/agregar_producto"
-                                 hx-vals='{"producto_id": "{{ producto.id }}", "nombre": "{{ producto.nombre }}", "precio": "{{ producto.precio }}"}'
-                                 hx-target="#carrito-container"
-                                 hx-swap="innerHTML">
+                                 onclick="agregarProductoMostrador({{ producto.id }}, '{{ producto.nombre|replace("'", "\\'") }}', {{ producto.precio }})">
                                 {% if producto.img_path %}
                                 <img src="{{ url_for('static', filename='uploads/images/' + producto.img_path) }}" 
                                      class="card-img-top" alt="{{ producto.nombre }}"
-                                     style="object-fit: cover; height: 70px;">
+                                     style="object-fit: cover; height: 50px;">
                                 {% else %}
                                 <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
-                                     style="height: 70px;">
-                                    <span class="text-muted small">🍽️</span>
+                                     style="height: 50px;">
+                                    <span class="text-muted" style="font-size:1.2rem;">🍽️</span>
                                 </div>
                                 {% endif %}
-                                <div class="card-body p-2 text-center">
-                                    <small class="card-title d-block mb-0">{{ producto.nombre[:20] }}</small>
-                                    <span class="text-primary fw-bold small">${{ producto.precio|format_price }}</span>
+                                <div class="card-body p-1 text-center">
+                                    <small class="card-title d-block mb-0 text-truncate" style="font-size:0.7rem;">{{ producto.nombre }}</small>
+                                    <span class="text-primary fw-bold" style="font-size:0.75rem;">${{ producto.precio|format_price }}</span>
                                 </div>
                             </div>
                         </div>
@@ -68,4 +65,47 @@ document.getElementById('buscar-producto')?.addEventListener('input', function()
         item.style.display = nombre.includes(filtro) ? '' : 'none';
     });
 });
+
+// Función para agregar producto (verifica si tiene extras primero)
+async function agregarProductoMostrador(productoId, nombre, precio) {
+    try {
+        // Verificar si el producto tiene atributos
+        const response = await fetch(`/mostrador/tiene_atributos/${productoId}`);
+        const data = await response.json();
+        
+        if (data.tiene_atributos) {
+            // Abrir modal de extras
+            abrirModalExtrasMostrador(productoId, nombre, precio);
+        } else {
+            // Agregar directamente al carrito sin extras
+            agregarAlCarritoMostradorDirecto(productoId, nombre, precio);
+        }
+    } catch (error) {
+        console.error('Error verificando atributos:', error);
+        // En caso de error, agregar directamente
+        agregarAlCarritoMostradorDirecto(productoId, nombre, precio);
+    }
+}
+
+// Agregar al carrito sin extras
+function agregarAlCarritoMostradorDirecto(productoId, nombre, precio) {
+    const formData = new FormData();
+    formData.append('producto_id', productoId);
+    formData.append('nombre', nombre);
+    formData.append('precio', precio);
+    formData.append('extras', '[]');
+    
+    fetch('/mostrador/agregar_producto', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(html => {
+        const container = document.getElementById('carrito-container');
+        container.innerHTML = html;
+        // Procesar HTMX en el nuevo contenido
+        htmx.process(container);
+    })
+    .catch(error => console.error('Error:', error));
+}
 </script>

@@ -6,20 +6,29 @@
             {% for item in carrito_items %}
             <tr>
                 <td class="align-middle">
-                    <strong>{{ item.nombre[:25] }}</strong><br>
+                    <strong>{{ item.nombre_base[:25] if item.nombre_base else item.nombre[:25] }}</strong>
+                    {% if item.extras and item.extras|length > 0 %}
+                    <br>
+                    <small class="text-success">
+                        {% for extra in item.extras %}
+                        + {{ extra.valor }}{% if extra.precio_adicional > 0 %} (${{ extra.precio_adicional|format_price }}){% endif %}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                    {% endif %}
+                    <br>
                     <small class="text-muted">${{ item.precio|format_price }} c/u</small>
                 </td>
                 <td class="align-middle text-center" style="width: 100px;">
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary"
                                 hx-post="/delivery/actualizar_cantidad"
-                                hx-vals='{"item_id": "{{ item.id }}", "accion": "disminuir"}'
+                                hx-vals='{"item_id": "{{ item.item_key|default(item.id) }}", "accion": "disminuir"}'
                                 hx-target="#carrito-container"
                                 hx-swap="innerHTML">−</button>
                         <span class="btn btn-light disabled">{{ item.cantidad }}</span>
                         <button class="btn btn-outline-secondary"
                                 hx-post="/delivery/actualizar_cantidad"
-                                hx-vals='{"item_id": "{{ item.id }}", "accion": "aumentar"}'
+                                hx-vals='{"item_id": "{{ item.item_key|default(item.id) }}", "accion": "aumentar"}'
                                 hx-target="#carrito-container"
                                 hx-swap="innerHTML">+</button>
                     </div>
@@ -29,7 +38,7 @@
                 </td>
                 <td class="align-middle text-center" style="width: 40px;">
                     <button class="btn btn-sm btn-outline-danger"
-                            hx-delete="/delivery/eliminar_del_carrito/{{ item.id }}"
+                            hx-delete="/delivery/eliminar_del_carrito/{{ item.item_key|default(item.id) }}"
                             hx-target="#carrito-container"
                             hx-swap="innerHTML">🗑️</button>
                 </td>
@@ -62,9 +71,8 @@
     </div>
     
     {% if carrito_items %}
-    <button class="btn btn-success w-100"
+    <button type="button" class="btn btn-success w-100"
             hx-post="/delivery/finalizar_pedido"
-            hx-include="#datos-pedido"
             hx-target="#right_panel"
             hx-swap="innerHTML">
         ✓ Confirmar Pedido

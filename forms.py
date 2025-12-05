@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, SubmitField, DateField, FileField, SelectMultipleField, DecimalField
+from wtforms import StringField, TextAreaField, SelectField, SubmitField, DateField, FileField, SelectMultipleField, DecimalField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Optional, length, ValidationError, NumberRange
 from flask_wtf.file import FileAllowed
 from src.models.repartidores_model import Repartidor
@@ -52,6 +52,7 @@ class ProductoForm(FlaskForm):
     marcas = SelectField('Marca:', choices=[], validators=[DataRequired()])
     presentaciones = SelectField('Presentación:', choices=[], validators=[DataRequired()])
     categorias = SelectMultipleField('Categorías:', choices=[], validators=[DataRequired("Seleccione al menos una categoría.")])
+    atributos = SelectMultipleField('Extras/Atributos:', choices=[], validators=[Optional()])
     submit = SubmitField('Guardar')
     
     
@@ -93,3 +94,32 @@ class ClienteForm(FlaskForm):
             # Validación de pasaporte
             if not re.match(r'^[A-Za-z0-9]{6,12}$', numero):
                 raise ValidationError('El pasaporte debe tener entre 6 y 12 caracteres alfanuméricos')
+
+
+# ==========================================
+# FORMULARIOS DE ATRIBUTOS/EXTRAS
+# ==========================================
+
+class AtributoForm(FlaskForm):
+    """Formulario para crear/editar atributos (grupos de extras)"""
+    nombre = StringField('Nombre:', validators=[DataRequired(), length(min=1, max=100)])
+    descripcion = TextAreaField('Descripción:', validators=[Optional(), length(max=255)])
+    tipo = SelectField('Tipo:', choices=[
+        ('extra', 'Extra (agregados opcionales)'),
+        ('variante', 'Variante (ej: tamaño)'),
+        ('opcion', 'Opción (selección única)')
+    ], validators=[DataRequired()])
+    es_multiple = BooleanField('Permite selección múltiple')
+    es_obligatorio = BooleanField('Es obligatorio')
+    orden = IntegerField('Orden:', validators=[Optional()], default=0)
+    submit = SubmitField('Guardar')
+
+
+class ValorAtributoForm(FlaskForm):
+    """Formulario para crear/editar valores de atributos"""
+    valor = StringField('Valor:', validators=[DataRequired(), length(min=1, max=100)])
+    descripcion = TextAreaField('Descripción:', validators=[Optional(), length(max=255)])
+    precio_adicional = DecimalField('Precio adicional:', validators=[Optional(), NumberRange(min=0)], default=0)
+    disponible = BooleanField('Disponible', default=True)
+    orden = IntegerField('Orden:', validators=[Optional()], default=0)
+    submit = SubmitField('Guardar')

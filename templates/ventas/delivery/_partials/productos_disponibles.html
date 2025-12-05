@@ -1,27 +1,24 @@
-<div class="productos-grid">
+<div class="productos-grid-container">
     <input type="text" class="form-control form-control-sm mb-2" 
            id="buscar-producto-agregar" 
            placeholder="🔍 Buscar producto..."
            onkeyup="filtrarProductosAgregar(this.value)">
-    <div class="row" id="grid-productos-agregar">
+    <div class="row g-2" id="grid-productos-agregar">
     {% for producto in productos %}
-    <div class="col-6 col-lg-4 mb-2 producto-agregar-item" data-nombre="{{ producto.nombre|lower }}">
+    <div class="col-4 col-md-3 producto-agregar-item" data-nombre="{{ producto.nombre|lower }}">
         <div class="card h-100" style="cursor:pointer;"
-             hx-post="/delivery/pedido/{{ pedido_id }}/carrito_temp/agregar"
-             hx-vals='{"producto_id": "{{ producto.id }}", "nombre": "{{ producto.nombre }}", "precio": "{{ producto.precio }}"}'
-             hx-target="#items-container"
-             hx-swap="innerHTML">
+             onclick="agregarProductoDetalle({{ producto.id }}, '{{ producto.nombre|replace("'", "\\'") }}', {{ producto.precio }}, {{ pedido_id }})">
             {% if producto.img_path %}
             <img src="{{ url_for('static', filename='uploads/images/' + producto.img_path) }}" 
-                 class="card-img-top" style="height:60px;object-fit:cover;">
+                 class="card-img-top" style="height:50px;object-fit:cover;">
             {% else %}
-            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:60px;">
-                <span class="text-muted">🍽️</span>
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:50px;">
+                <span class="text-muted" style="font-size:1.2rem;">🍽️</span>
             </div>
             {% endif %}
-            <div class="card-body p-2 text-center">
-                <small class="d-block">{{ producto.nombre[:18] }}</small>
-                <span class="text-primary fw-bold small">${{ producto.precio|format_price }}</span>
+            <div class="card-body p-1 text-center">
+                <small class="d-block text-truncate" style="font-size:0.7rem;">{{ producto.nombre }}</small>
+                <span class="text-primary fw-bold" style="font-size:0.75rem;">${{ producto.precio|format_price }}</span>
             </div>
         </div>
     </div>
@@ -40,5 +37,155 @@ function filtrarProductosAgregar(texto) {
         const nombre = item.dataset.nombre;
         item.style.display = nombre.includes(filtro) ? '' : 'none';
     });
+}
+
+// Variables globales - usar var para evitar error de redeclaración con HTMX
+if (typeof pedidoIdActual === 'undefined') {
+    var pedidoIdActual = null;
+}
+if (typeof modoDetallePedido === 'undefined') {
+    var modoDetallePedido = false;
+}
+
+async function agregarProductoDetalle(productoId, nombre, precio, pedidoId) {
+    pedidoIdActual = pedidoId;
+    modoDetallePedido = true;
+    
+    try {
+        // Verificar si el producto tiene atributos
+        const response = await fetch(`/delivery/tiene_atributos/${productoId}`);
+        const data = await response.json();
+        
+        if (data.tiene_atributos) {
+            // Mostrar modal de extras (reutilizamos el existente)
+            abrirModalExtrasDetalle(productoId, nombre, precio);
+        } else {
+            // Agregar directamente sin extras
+            agregarAlCarritoTemporal(productoId, nombre, precio, []);
+        }
+    } catch (error) {
+        console.error('Error verificando atributos:', error);
+        // En caso de error, agregar sin extras
+        agregarAlCarritoTemporal(productoId, nombre, precio, []);
+    }
+}
+
+// Función similar a abrirModalExtras pero para detalle de pedido
+function abrirModalExtrasDetalle(productoId, nombre, precio) {
+    precioBaseActual = parseFloat(precio);
+    extrasSeleccionados = [];
+    
+    // Actualizar campos ocultos del modal existente
+    document.getElementById('extras-producto-id').value = productoId;
+    document.getElementById('extras-producto-precio').value = precio;
+    document.getElementById('extras-producto-nombre-hidden').value = nombre;
+    document.getElementById('extras-producto-nombre').textContent = nombre;
+    document.getElementById('extras-precio-base').textContent = formatPriceModal(precio);
+    
+    // Resetear precios visualmente
+    document.getElementById('extras-precio-adicional').textContent = '+' + formatPriceModal(0);
+    document.getElementById('extras-precio-total').textContent = formatPriceModal(precio);
+    
+    // Mostrar loading
+    document.getElementById('extras-container').innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    
+    // Cargar extras desde API
+    fetch(`/delivery/get_atributos_producto/${productoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.atributos && data.atributos.length > 0) {
+                renderizarExtras(data.atributos);
+            } else {
+                // Si no hay extras, agregar directamente
+                agregarAlCarritoTemporal(productoId, nombre, precio, []);
+                return;
+            }
+            // Mostrar modal después de renderizar
+            const modal = new bootstrap.Modal(document.getElementById('extrasModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error cargando extras:', error);
+            // En caso de error, agregar sin extras
+            agregarAlCarritoTemporal(productoId, nombre, precio, []);
+        });
+}
+
+function agregarAlCarritoTemporal(productoId, nombre, precio, extras) {
+    // Crear FormData
+    const formData = new FormData();
+    formData.append('producto_id', productoId);
+    formData.append('nombre', nombre);
+    formData.append('precio', precio);
+    formData.append('extras', JSON.stringify(extras));
+    
+    // Hacer POST vía fetch y actualizar el container
+    fetch(`/delivery/pedido/${pedidoIdActual}/carrito_temp/agregar`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(html => {
+        const container = document.getElementById('items-container');
+        container.innerHTML = html;
+        htmx.process(container);
+        // Resetear modo
+        modoDetallePedido = false;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        modoDetallePedido = false;
+    });
+}
+
+// Configurar el handler para el botón confirmar extras (modo detalle pedido)
+// Usar una función nombrada para evitar múltiples listeners
+if (typeof handleConfirmarExtrasDetalle === 'undefined') {
+    var handleConfirmarExtrasDetalle = function(e) {
+        if (modoDetallePedido) {
+            e.stopImmediatePropagation(); // Evitar handler original
+            
+            const productoId = document.getElementById('extras-producto-id').value;
+            const nombre = document.getElementById('extras-producto-nombre-hidden').value;
+            const precioBase = parseFloat(document.getElementById('extras-producto-precio').value);
+            
+            // Obtener extras seleccionados
+            const checkboxes = document.querySelectorAll('.extra-checkbox:checked');
+            const extras = [];
+            let precioExtras = 0;
+            
+            checkboxes.forEach(cb => {
+                const precio = parseFloat(cb.dataset.precio) || 0;
+                precioExtras += precio;
+                extras.push({
+                    id: parseInt(cb.value),
+                    valor: cb.dataset.valor,
+                    precio_adicional: precio
+                });
+            });
+            
+            // Quitar foco antes de cerrar
+            document.activeElement.blur();
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('extrasModal'));
+            if (modal) modal.hide();
+            
+            // Agregar al carrito temporal (precio base, los extras se calculan en backend)
+            agregarAlCarritoTemporal(productoId, nombre, precioBase, extras);
+        }
+    };
+    
+    // Añadir listener solo una vez
+    const btnConfirmar = document.getElementById('btn-confirmar-extras');
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', handleConfirmarExtrasDetalle, true);
+    }
 }
 </script>

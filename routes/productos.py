@@ -1,10 +1,10 @@
 from flask import Blueprint,  render_template, redirect, url_for, flash, request
-from src.models.Producto_model import Producto
-from src.models.Producto_model import CategoriaProducto
+from src.models.Producto_model import Producto, CategoriaProducto, ProductoAtributo
 from src.models.Caracteristica_model import Caracteristica
 from src.models.Marca_model import Marca
 from src.models.Presentacion_model import Presentacion
 from src.models.Categoria_model import Categoria
+from src.models.AtributoProducto_model import AtributoProducto
 
 from utils.db import db
 from forms import ProductoForm
@@ -39,6 +39,10 @@ def create_producto():
                                 .join(Categoria.caracteristica)
                                 .filter(Caracteristica.estado == 1)
                                 .all()]
+    
+    # Cargar atributos/extras disponibles
+    form.atributos.choices = [(str(a.id), a.nombre) 
+                              for a in AtributoProducto.query.filter_by(estado=1).order_by(AtributoProducto.orden).all()]
 
     if request.method == 'POST':
         # Aquí iría la lógica para manejar el formulario y crear un nuevo producto
@@ -62,13 +66,22 @@ def create_producto():
                     db.session.add(nuevo_producto)
                     db.session.flush()
 
+                    # Guardar categorías
                     for categoria_id in form.categorias.data:
-                        # Crear una nueva entrada en la tabla pivote
                         categoria_producto = CategoriaProducto(
                             producto_id=nuevo_producto.id,
                             categoria_id=int(categoria_id)
                         )
                         db.session.add(categoria_producto)
+                    
+                    # Guardar atributos/extras
+                    for idx, atributo_id in enumerate(form.atributos.data or []):
+                        producto_atributo = ProductoAtributo(
+                            producto_id=nuevo_producto.id,
+                            atributo_id=int(atributo_id),
+                            orden_producto=idx
+                        )
+                        db.session.add(producto_atributo)
                         
                     db.session.commit()
                     flash('Producto creado exitosamente', 'success')
@@ -107,6 +120,10 @@ def update_producto(id):
                                 .filter(Caracteristica.estado == 1)
                                 .all()]
     
+    # Cargar atributos/extras disponibles
+    form.atributos.choices = [(str(a.id), a.nombre) 
+                              for a in AtributoProducto.query.filter_by(estado=1).order_by(AtributoProducto.orden).all()]
+    
     # Establecer los valores seleccionados previamente
     if request.method == 'GET':
         form.marcas.data = str(producto.marca_id)
@@ -117,6 +134,12 @@ def update_producto(id):
             .filter(CategoriaProducto.producto_id == producto.id)\
             .all()
         form.categorias.data = [str(cat_id[0]) for cat_id in categorias_actuales]
+        
+        # Obtener IDs de atributos existentes
+        atributos_actuales = db.session.query(ProductoAtributo.atributo_id)\
+            .filter(ProductoAtributo.producto_id == producto.id)\
+            .all()
+        form.atributos.data = [str(attr_id[0]) for attr_id in atributos_actuales]
 
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -130,16 +153,23 @@ def update_producto(id):
             producto.presentacione_id = form.presentaciones.data
 
             # Actualizar las categorías
-            # Eliminar las categorías existentes
             CategoriaProducto.query.filter_by(producto_id=producto.id).delete()
-            
-            # Agregar las nuevas categorías
             for categoria_id in form.categorias.data:
                 categoria_producto = CategoriaProducto(
                     producto_id=producto.id,
                     categoria_id=int(categoria_id)
                 )
                 db.session.add(categoria_producto)
+            
+            # Actualizar los atributos/extras
+            ProductoAtributo.query.filter_by(producto_id=producto.id).delete()
+            for idx, atributo_id in enumerate(form.atributos.data or []):
+                producto_atributo = ProductoAtributo(
+                    producto_id=producto.id,
+                    atributo_id=int(atributo_id),
+                    orden_producto=idx
+                )
+                db.session.add(producto_atributo)
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')

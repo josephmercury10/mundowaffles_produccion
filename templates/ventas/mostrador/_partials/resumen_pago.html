@@ -1,0 +1,31 @@
+<div class="card-content">
+    <div class="space-y-3">
+        <div class="summary-row">
+            <span class="summary-label">Subtotal:</span>
+            <span class="summary-value">${{ pedido.total|format_price }}</span>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="summary-row summary-total">
+            <span class="summary-label">Total:</span>
+            <span class="summary-value">${{ pedido.total|format_price }}</span>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="summary-row">
+            <span class="summary-label">Estado de Pago:</span>
+            <span class="summary-value">
+                {% if pedido.comprobante_id %}
+                    <span class="badge bg-success">✓ Pagado</span>
+                    {% if pedido.comprobante %}
+                        <small class="text-muted ms-2">{{ pedido.comprobante.tipo_comprobante }} - {{ pedido.numero_comprobante }}</small>
+                    {% endif %}
+                {% else %}
+                    <span class="badge bg-warning text-dark">Pendiente de cobro</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>

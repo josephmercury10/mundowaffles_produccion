@@ -2,7 +2,7 @@
     <div class="new-order-header">NUEVO PEDIDO</div>
 </div>
 <div class="container w-100 border border-3 border-wa rounded p-4 mt-3">
-    <form id="cliente-form" hx-post="/delivery/carrito_delivery" hx-swap="innerHTML">
+    <form id="cliente-form" hx-post="/delivery/carrito_delivery" hx-target="#right_panel" hx-swap="innerHTML">
         {{ form.csrf_token }}
         <div class="row g-3">
             <!-----------------------Teléfono-------------------------------------------->

@@ -1,11 +1,15 @@
 from flask import Blueprint, request, jsonify, render_template, session, flash, make_response
 from datetime import datetime
+import json
+import uuid
 from src.models.Persona_model import Persona
 from src.models.Cliente_model import Cliente
 from src.models.repartidores_model import Repartidor
-from src.models.Producto_model import Producto
+from src.models.Producto_model import Producto, ProductoAtributo
 from src.models.Venta_model import Venta
 from src.models.Venta_model import ProductoVenta
+from src.models.AtributoProducto_model import AtributoProducto
+from src.models.ValorAtributo_model import ValorAtributo
 from utils.db import db
 from utils.printer import get_printer
 from forms import DeliveryForm
@@ -101,27 +105,65 @@ def save():
                                  )
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+    
+    # Si el formulario no valida, devolver error
+    return jsonify({'error': 'Formulario inválido', 'errors': form.errors}), 400
 
 
 # Ruta para agregar un producto al carrito
 @delivery_bp.route('/agregar_al_carrito', methods=['POST'])
 def agregar_al_carrito():
+    import json
+    import uuid
+    
     producto_id = request.form.get('producto_id')
     nombre = request.form.get('nombre')
     precio = float(request.form.get('precio'))
+    precio_base = float(request.form.get('precio_base', precio))
+    extras_json = request.form.get('extras', '[]')
+    
+    try:
+        extras = json.loads(extras_json) if extras_json else []
+    except:
+        extras = []
     
     # Obtener carrito de sesión
     carrito = session.get('carrito', {})
     
-    if producto_id in carrito:
-        carrito[producto_id]['cantidad'] += 1
-    else:
-        carrito[producto_id] = {
+    # Si tiene extras, crear una entrada única para cada combinación
+    if extras:
+        # Crear un ID único para esta combinación producto + extras
+        item_key = f"{producto_id}_{uuid.uuid4().hex[:8]}"
+        
+        # Construir nombre con extras
+        extras_texto = ', '.join([e['valor'] for e in extras])
+        nombre_completo = f"{nombre} ({extras_texto})"
+        
+        carrito[item_key] = {
             'id': producto_id,
-            'nombre': nombre,
+            'item_key': item_key,
+            'nombre': nombre_completo,
+            'nombre_base': nombre,
             'precio': precio,
-            'cantidad': 1
+            'precio_base': precio_base,
+            'cantidad': 1,
+            'extras': extras
         }
+    else:
+        # Sin extras: comportamiento normal
+        if producto_id in carrito and not carrito[producto_id].get('extras'):
+            carrito[producto_id]['cantidad'] += 1
+        else:
+            carrito[producto_id] = {
+                'id': producto_id,
+                'item_key': producto_id,
+                'nombre': nombre,
+                'nombre_base': nombre,
+                'precio': precio,
+                'precio_base': precio,
+                'cantidad': 1,
+                'extras': []
+            }
     
     session['carrito'] = carrito
     
@@ -142,7 +184,77 @@ def agregar_al_carrito():
                          subtotal=subtotal,
                          envio=envio,
                          total=total)
-    
+
+
+# Ruta para obtener los atributos de un producto (API JSON)
+@delivery_bp.route('/get_atributos_producto/<int:producto_id>')
+def get_atributos_producto(producto_id):
+    """Devuelve los atributos disponibles para un producto en formato JSON"""
+    try:
+        # Obtener la relación producto-atributos
+        producto_atributos = ProductoAtributo.query.filter_by(
+            producto_id=producto_id
+        ).order_by(ProductoAtributo.orden_producto).all()
+        
+        atributos_data = []
+        
+        for pa in producto_atributos:
+            if not pa.es_visible:
+                continue
+                
+            atributo = pa.atributo
+            if not atributo or atributo.estado != 1:
+                continue
+            
+            # Obtener valores disponibles del atributo
+            valores = ValorAtributo.query.filter_by(
+                atributo_id=atributo.id,
+                disponible=True,
+                estado=1
+            ).order_by(ValorAtributo.orden).all()
+            
+            valores_data = []
+            for v in valores:
+                valores_data.append({
+                    'id': v.id,
+                    'valor': v.valor,
+                    'descripcion': v.descripcion or '',
+                    'precio_adicional': float(v.precio_adicional or 0)
+                })
+            
+            if valores_data:  # Solo agregar si tiene valores disponibles
+                atributos_data.append({
+                    'id': atributo.id,
+                    'nombre': atributo.nombre,
+                    'descripcion': atributo.descripcion or '',
+                    'tipo': atributo.tipo,
+                    'es_multiple': atributo.es_multiple,
+                    'es_obligatorio': atributo.es_obligatorio,
+                    'valores': valores_data
+                })
+        
+        return jsonify({
+            'success': True,
+            'tiene_atributos': len(atributos_data) > 0,
+            'atributos': atributos_data
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# Ruta para verificar si un producto tiene atributos (rápido)
+@delivery_bp.route('/tiene_atributos/<int:producto_id>')
+def tiene_atributos(producto_id):
+    """Verifica rápidamente si un producto tiene atributos configurados"""
+    count = ProductoAtributo.query.filter_by(
+        producto_id=producto_id,
+        es_visible=True
+    ).count()
+    return jsonify({'tiene_atributos': count > 0})
 
 
 # Ruta para actualizar la cantidad de un producto en el carrito
@@ -202,6 +314,8 @@ def render_carrito_actualizado():
 # Ruta para guardar el pedido para que quede en estado "En preparación"
 @delivery_bp.route('/finalizar_pedido', methods=['POST'])
 def finalizar_pedido():
+    import json
+    
     try:
         carrito = session.get('carrito', {})
         cliente_data = session.get('cliente_data', {})
@@ -230,14 +344,23 @@ def finalizar_pedido():
         db.session.add(venta)
         db.session.flush()
         
-        # Agregar productos
+        # Agregar productos con extras
         for item in carrito.values():
+            # Serializar extras a JSON si existen
+            atributos_json = None
+            if item.get('extras') and len(item['extras']) > 0:
+                atributos_json = json.dumps(item['extras'])
+            
+            # Extraer el ID real del producto (puede venir como "123" o "123_uuid")
+            producto_id_real = str(item['id']).split('_')[0]
+            
             producto_venta = ProductoVenta(
                 venta_id=venta.id,
-                producto_id=item['id'],
+                producto_id=int(producto_id_real),
                 cantidad=item['cantidad'],
                 precio_venta=item['precio'],
-                descuento=0
+                descuento=0,
+                atributos_seleccionados=atributos_json
             )
             db.session.add(producto_venta)
         
@@ -302,6 +425,14 @@ def detalle_pedido(pedido_id):
 
         productos = ProductoVenta.query.filter_by(venta_id=pedido_id).all()
         cliente = Cliente.query.get(pedido.cliente_id)
+        
+        # Parsear atributos_seleccionados si es string JSON
+        for producto in productos:
+            if producto.atributos_seleccionados and isinstance(producto.atributos_seleccionados, str):
+                try:
+                    producto.atributos_seleccionados = json.loads(producto.atributos_seleccionados)
+                except:
+                    producto.atributos_seleccionados = []
         
         # Calcular el total incluyendo el costo de envío
         costo_envio = pedido.costo_envio if pedido.costo_envio is not None else 0
@@ -532,12 +663,24 @@ def _render_items_pedido(pedido_id):
     costo_envio = pedido.costo_envio if pedido.costo_envio else 0
     total_con_envio = float(pedido.total) + float(costo_envio)
     
+    # Parsear atributos_seleccionados si es string JSON
+    for producto in productos:
+        if producto.atributos_seleccionados and isinstance(producto.atributos_seleccionados, str):
+            try:
+                producto.atributos_seleccionados = json.loads(producto.atributos_seleccionados)
+            except:
+                producto.atributos_seleccionados = []
+    
     # Obtener carrito temporal y items pendientes de eliminar de la sesión
     carrito_temporal = session.get(f'carrito_temp_{pedido_id}', {})
     items_pendientes_eliminar = session.get(f'eliminar_{pedido_id}', [])
     
-    # Convertir carrito temporal a lista
-    carrito_lista = list(carrito_temporal.values()) if carrito_temporal else []
+    # Convertir carrito temporal a lista con keys incluidas
+    carrito_lista = []
+    for key, item in carrito_temporal.items():
+        item_con_key = item.copy()
+        item_con_key['key'] = key
+        carrito_lista.append(item_con_key)
     
     return render_template('ventas/delivery/_partials/items_pedido.html',
                           pedido=pedido,
@@ -630,20 +773,32 @@ def carrito_temp_agregar(pedido_id):
         producto_id = request.form.get('producto_id')
         nombre = request.form.get('nombre')
         precio = float(request.form.get('precio', 0))
+        extras_json = request.form.get('extras', '[]')
+        
+        try:
+            extras = json.loads(extras_json) if extras_json else []
+        except:
+            extras = []
+        
+        # Calcular precio total con extras
+        precio_extras = sum(float(e.get('precio_adicional', 0)) for e in extras)
+        precio_total = precio + precio_extras
         
         # Obtener carrito temporal de la sesión
         carrito_key = f'carrito_temp_{pedido_id}'
         carrito = session.get(carrito_key, {})
         
-        if producto_id in carrito:
-            carrito[producto_id]['cantidad'] += 1
-        else:
-            carrito[producto_id] = {
-                'id': producto_id,
-                'nombre': nombre,
-                'precio': precio,
-                'cantidad': 1
-            }
+        # Generar una clave única para cada combinación producto+extras
+        item_key = f"{producto_id}_{uuid.uuid4().hex[:8]}"
+        
+        carrito[item_key] = {
+            'id': producto_id,
+            'nombre': nombre,
+            'precio': precio,
+            'precio_total': precio_total,
+            'cantidad': 1,
+            'extras': extras
+        }
         
         session[carrito_key] = carrito
         
@@ -653,42 +808,42 @@ def carrito_temp_agregar(pedido_id):
         return jsonify({'error': str(e)}), 500
 
 
-@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/aumentar/<producto_id>', methods=['POST'])
-def carrito_temp_aumentar(pedido_id, producto_id):
+@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/aumentar/<item_key>', methods=['POST'])
+def carrito_temp_aumentar(pedido_id, item_key):
     """Aumenta cantidad de un producto en el carrito temporal"""
     carrito_key = f'carrito_temp_{pedido_id}'
     carrito = session.get(carrito_key, {})
     
-    if producto_id in carrito:
-        carrito[producto_id]['cantidad'] += 1
+    if item_key in carrito:
+        carrito[item_key]['cantidad'] += 1
         session[carrito_key] = carrito
     
     return _render_items_pedido(pedido_id)
 
 
-@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/disminuir/<producto_id>', methods=['POST'])
-def carrito_temp_disminuir(pedido_id, producto_id):
+@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/disminuir/<item_key>', methods=['POST'])
+def carrito_temp_disminuir(pedido_id, item_key):
     """Disminuye cantidad de un producto en el carrito temporal"""
     carrito_key = f'carrito_temp_{pedido_id}'
     carrito = session.get(carrito_key, {})
     
-    if producto_id in carrito:
-        carrito[producto_id]['cantidad'] -= 1
-        if carrito[producto_id]['cantidad'] <= 0:
-            del carrito[producto_id]
+    if item_key in carrito:
+        carrito[item_key]['cantidad'] -= 1
+        if carrito[item_key]['cantidad'] <= 0:
+            del carrito[item_key]
         session[carrito_key] = carrito
     
     return _render_items_pedido(pedido_id)
 
 
-@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/eliminar/<producto_id>', methods=['POST'])
-def carrito_temp_eliminar(pedido_id, producto_id):
+@delivery_bp.route('/pedido/<int:pedido_id>/carrito_temp/eliminar/<item_key>', methods=['POST'])
+def carrito_temp_eliminar(pedido_id, item_key):
     """Elimina un producto del carrito temporal"""
     carrito_key = f'carrito_temp_{pedido_id}'
     carrito = session.get(carrito_key, {})
     
-    if producto_id in carrito:
-        del carrito[producto_id]
+    if item_key in carrito:
+        del carrito[item_key]
         session[carrito_key] = carrito
     
     return _render_items_pedido(pedido_id)
@@ -712,28 +867,24 @@ def confirmar_productos(pedido_id):
         
         for item in carrito.values():
             producto_id = int(item['id'])
+            extras = item.get('extras', [])
+            precio_total = item.get('precio_total', item['precio'])
             
-            # Verificar si ya existe en el pedido
-            producto_existente = ProductoVenta.query.filter_by(
+            # Siempre crear un nuevo registro para respetar los extras únicos
+            nuevo_producto = ProductoVenta(
                 venta_id=pedido_id,
-                producto_id=producto_id
-            ).first()
-            
-            if producto_existente:
-                producto_existente.cantidad += item['cantidad']
-            else:
-                nuevo_producto = ProductoVenta(
-                    venta_id=pedido_id,
-                    producto_id=producto_id,
-                    cantidad=item['cantidad'],
-                    precio_venta=item['precio'],
-                    descuento=0
-                )
-                db.session.add(nuevo_producto)
+                producto_id=producto_id,
+                cantidad=item['cantidad'],
+                precio_venta=precio_total,  # Precio incluye extras
+                descuento=0,
+                atributos_seleccionados=extras if extras else None
+            )
+            db.session.add(nuevo_producto)
             
             productos_agregados.append({
                 'nombre': item['nombre'],
-                'cantidad': item['cantidad']
+                'cantidad': item['cantidad'],
+                'extras': extras
             })
         
         # Recalcular total
@@ -754,7 +905,10 @@ def confirmar_productos(pedido_id):
         # Limpiar carrito temporal
         session.pop(carrito_key, None)
         
-        return _render_items_pedido(pedido_id)
+        # Retornar con trigger para actualizar resumen de pago
+        response = make_response(_render_items_pedido(pedido_id))
+        response.headers['HX-Trigger'] = 'refresh-resumen'
+        return response
         
     except Exception as e:
         db.session.rollback()
@@ -787,6 +941,19 @@ def desmarcar_eliminar(pedido_id, producto_id):
         session[eliminar_key] = items_eliminar
     
     return _render_items_pedido(pedido_id)
+
+
+@delivery_bp.route('/pedido/<int:pedido_id>/resumen_pago', methods=['GET'])
+def resumen_pago(pedido_id):
+    """Retorna el resumen de pago actualizado"""
+    try:
+        pedido = Venta.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'error': 'Pedido no encontrado'}), 404
+        
+        return render_template('ventas/delivery/_partials/resumen_pago.html', pedido=pedido)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @delivery_bp.route('/pedido/<int:pedido_id>/confirmar_eliminacion', methods=['POST'])
@@ -832,7 +999,10 @@ def confirmar_eliminacion(pedido_id):
         # Limpiar lista de eliminación
         session.pop(eliminar_key, None)
         
-        return _render_items_pedido(pedido_id)
+        # Retornar con trigger para actualizar resumen de pago
+        response = make_response(_render_items_pedido(pedido_id))
+        response.headers['HX-Trigger'] = 'refresh-resumen'
+        return response
         
     except Exception as e:
         db.session.rollback()

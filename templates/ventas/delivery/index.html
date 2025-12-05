@@ -124,6 +124,9 @@
         {% endblock %}
     </div>
 
+    <!-- Modal de Extras (fuera del área de actualización HTMX) -->
+    {% include 'ventas/_partials/modal_extras.html' %}
+
     <!-- Agregar al final del archivo index.html, antes de </body> -->
 {% block scripts %}
     {{ super() }}

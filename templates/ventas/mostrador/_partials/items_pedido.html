@@ -1,16 +1,23 @@
 <div class="card-content space-y-3">
-    <!-- Items actuales del pedido (no editables directamente) -->
-    <div id="lista-items-actuales">
+    <!-- Items actuales del pedido -->
+    <div id="lista-items-actuales" class="items-list">
     {% for producto in productos %}
     <div class="order-item {% if producto.id in items_pendientes_eliminar %}item-pendiente-eliminar{% endif %}" 
          id="item-{{ producto.id }}">
-        <div class="item-left">
-            <div class="quantity-badge">{{ producto.cantidad }}</div>
-            <div>
+        <div class="item-info">
+            <div class="item-image">
+                {% if producto.producto.img_path %}
+                <img src="{{ url_for('static', filename='uploads/images/' + producto.producto.img_path) }}" 
+                     alt="{{ producto.producto.nombre }}">
+                {% else %}
+                <div class="item-placeholder">🍽️</div>
+                {% endif %}
+            </div>
+            <div class="item-details">
                 <p class="item-name {% if producto.id in items_pendientes_eliminar %}text-decoration-line-through text-muted{% endif %}">
                     {{ producto.producto.nombre }}
                 </p>
-                <p class="item-details">{{ producto.cantidad }} × ${{ producto.precio_venta|format_price }}</p>
+                <p class="item-price">${{ producto.precio_venta|format_price }} c/u</p>
                 {% if producto.atributos_seleccionados %}
                 <small class="text-success d-block" style="font-size: 0.75rem; line-height: 1.2;">
                     {% for extra in producto.atributos_seleccionados %}
@@ -20,12 +27,15 @@
                 {% endif %}
             </div>
         </div>
+        <div class="item-quantity">
+            <span class="quantity-badge">x{{ producto.cantidad }}</span>
+        </div>
         <div class="item-actions">
-            <p class="item-price">${{ (producto.cantidad * producto.precio_venta)|format_price }}</p>
-            {% if pedido.estado_delivery == 1 and producto.id not in items_pendientes_eliminar %}
+            <span class="subtotal-value">${{ (producto.cantidad * producto.precio_venta)|format_price }}</span>
+            {% if pedido.estado_mostrador == 1 and not pedido.comprobante_id and producto.id not in items_pendientes_eliminar %}
             <!-- Botón marcar para eliminar -->
-            <button class="btn btn-sm btn-outline-danger"
-                    hx-post="/delivery/pedido/{{ pedido.id }}/marcar_eliminar/{{ producto.id }}"
+            <button class="btn btn-sm btn-outline-danger ms-2"
+                    hx-post="/mostrador/pedido/{{ pedido.id }}/marcar_eliminar/{{ producto.id }}"
                     hx-target="#items-container"
                     hx-swap="innerHTML"
                     title="Marcar para eliminar">
@@ -36,8 +46,8 @@
             </button>
             {% elif producto.id in items_pendientes_eliminar %}
             <!-- Botón desmarcar -->
-            <button class="btn btn-sm btn-outline-secondary"
-                    hx-post="/delivery/pedido/{{ pedido.id }}/desmarcar_eliminar/{{ producto.id }}"
+            <button class="btn btn-sm btn-outline-secondary ms-2"
+                    hx-post="/mostrador/pedido/{{ pedido.id }}/desmarcar_eliminar/{{ producto.id }}"
                     hx-target="#items-container"
                     hx-swap="innerHTML"
                     title="Cancelar eliminación">
@@ -47,8 +57,8 @@
         </div>
     </div>
     {% else %}
-    <div class="empty-cart">
-        <p>No hay productos en este pedido</p>
+    <div class="empty-cart text-center py-3">
+        <p class="text-muted">No hay productos en este pedido</p>
     </div>
     {% endfor %}
     </div>
@@ -65,7 +75,7 @@
             {% endfor %}
         </ul>
         <button class="btn btn-danger w-100"
-                hx-post="/delivery/pedido/{{ pedido.id }}/confirmar_eliminacion"
+                hx-post="/mostrador/pedido/{{ pedido.id }}/confirmar_eliminacion"
                 hx-target="#items-container"
                 hx-swap="innerHTML">
             🗑️ Confirmar Eliminación
@@ -73,8 +83,8 @@
     </div>
     {% endif %}
 
-    <!-- Sección para agregar nuevos productos (solo si estado_delivery = 1) -->
-    {% if pedido.estado_delivery == 1 %}
+    <!-- Sección para agregar nuevos productos (solo si estado_mostrador = 1 y no está pagado) -->
+    {% if pedido.estado_mostrador == 1 and not pedido.comprobante_id %}
     <div class="add-product-section mt-3">
         <details class="productos-acordeon" id="acordeon-agregar">
             <summary class="acordeon-header">
@@ -90,12 +100,12 @@
             </summary>
             <div class="productos-grid-container">
                 <!-- Lista de productos disponibles -->
-                <div hx-get="/delivery/pedido/{{ pedido.id }}/productos_disponibles"
+                <div hx-get="/mostrador/pedido/{{ pedido.id }}/productos_disponibles"
                      hx-trigger="revealed"
                      hx-swap="innerHTML">
-                    <div class="loading-productos">
-                        <div class="spinner"></div>
-                        <span>Cargando productos...</span>
+                    <div class="loading-productos text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2">Cargando productos...</span>
                     </div>
                 </div>
             </div>
@@ -126,12 +136,12 @@
                     <td class="text-center" style="width:100px;">
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-secondary"
-                                    hx-post="/delivery/pedido/{{ pedido.id }}/carrito_temp/disminuir/{{ item.key }}"
+                                    hx-post="/mostrador/pedido/{{ pedido.id }}/carrito_temp/disminuir/{{ item.key }}"
                                     hx-target="#items-container"
                                     hx-swap="innerHTML">−</button>
                             <span class="btn btn-light disabled">{{ item.cantidad }}</span>
                             <button class="btn btn-outline-secondary"
-                                    hx-post="/delivery/pedido/{{ pedido.id }}/carrito_temp/aumentar/{{ item.key }}"
+                                    hx-post="/mostrador/pedido/{{ pedido.id }}/carrito_temp/aumentar/{{ item.key }}"
                                     hx-target="#items-container"
                                     hx-swap="innerHTML">+</button>
                         </div>
@@ -139,7 +149,7 @@
                     <td class="text-end" style="width:80px;">${{ ((item.precio_total if item.precio_total else item.precio) * item.cantidad)|format_price }}</td>
                     <td style="width:40px;">
                         <button class="btn btn-sm btn-outline-danger"
-                                hx-post="/delivery/pedido/{{ pedido.id }}/carrito_temp/eliminar/{{ item.key }}"
+                                hx-post="/mostrador/pedido/{{ pedido.id }}/carrito_temp/eliminar/{{ item.key }}"
                                 hx-target="#items-container"
                                 hx-swap="innerHTML">×</button>
                     </td>
@@ -150,7 +160,7 @@
         </div>
         <div class="card-footer">
             <button class="btn btn-success w-100"
-                    hx-post="/delivery/pedido/{{ pedido.id }}/confirmar_productos"
+                    hx-post="/mostrador/pedido/{{ pedido.id }}/confirmar_productos"
                     hx-target="#items-container"
                     hx-swap="innerHTML">
                 ✓ Confirmar Productos
@@ -161,10 +171,10 @@
     {% endif %}
 </div>
 
-<!-- Resumen actualizado -->
+<!-- Total items -->
 <div class="card-footer">
     <div class="summary-row summary-total">
-        <span class="summary-label">Total:</span>
-        <span class="summary-value">${{ total_con_envio|format_price }}</span>
+        <span class="summary-label">Total Items:</span>
+        <span class="summary-value">{{ productos|length }} producto(s)</span>
     </div>
 </div>

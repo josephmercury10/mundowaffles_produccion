@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block left_panel %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4 text-center">
+        <i class="bi bi-list-ul"></i> Valores de: {{ atributo.nombre }}
+    </h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('mostrador.index') }}">Inicio</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('atributos.get_atributos') }}">Atributos</a></li>
+        <li class="breadcrumb-item active">Valores</li>
+    </ol>
+    
+    <div class="mb-4">
+        <a href="{{ url_for('atributos.get_atributos') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+        <a href="{{ url_for('atributos.create_valor', atributo_id=atributo.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Valor
+        </a>
+    </div>
+
+    <!-- Info del atributo -->
+    <div class="alert alert-info">
+        <strong>Tipo:</strong> 
+        {% if atributo.tipo == 'extra' %}Extra{% elif atributo.tipo == 'variante' %}Variante{% else %}Opción{% endif %}
+        | <strong>Múltiple:</strong> {{ 'Sí' if atributo.es_multiple else 'No' }}
+        | <strong>Obligatorio:</strong> {{ 'Sí' if atributo.es_obligatorio else 'No' }}
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-table"></i> Valores disponibles
+        </div>
+        <div class="card-body">
+            {% if valores %}
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Valor</th>
+                        <th>Descripción</th>
+                        <th>Precio Adicional</th>
+                        <th>Disponible</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for valor in valores %}
+                    <tr>
+                        <td>{{ valor.orden }}</td>
+                        <td><strong>{{ valor.valor }}</strong></td>
+                        <td>{{ valor.descripcion or '-' }}</td>
+                        <td>
+                            {% if valor.precio_adicional > 0 %}
+                            <span class="badge bg-success">+${{ valor.precio_adicional|format_price }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Sin cargo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if valor.disponible %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle text-danger"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if valor.estado %}
+                            <span class="badge bg-success">Activo</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('atributos.update_valor', atributo_id=atributo.id, valor_id=valor.id) }}" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ url_for('atributos.delete_valor', atributo_id=atributo.id, valor_id=valor.id) }}" method="POST" style="display:inline;">
+                                    {% if valor.estado %}
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Desactivar este valor?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">No hay valores definidos para este atributo</p>
+                <a href="{{ url_for('atributos.create_valor', atributo_id=atributo.id) }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Agregar primer valor
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

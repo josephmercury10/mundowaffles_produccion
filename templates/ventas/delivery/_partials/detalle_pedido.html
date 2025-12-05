@@ -161,28 +161,11 @@
                     </h2>
                 </div>
                 <div class="card-content">
-                    <div class="space-y-3">
-                        <div class="summary-row">
-                            <span class="summary-label">Subtotal:</span>
-                            <span class="summary-value">${{ pedido.total|format_price }}</span>
-                        </div>
-                        
-                        <div class="summary-row">
-                            <span class="summary-label">Descuento:</span>
-                            <span class="summary-value">$0</span>
-                        </div>
-                        
-                        <div class="summary-row">
-                            <span class="summary-label">Costo Envío:</span>
-                            <span class="summary-value">${{ pedido.costo_envio|format_price }}</span>
-                        </div>
-                        
-                        <div class="separator"></div>
-                        
-                        <div class="summary-row summary-total">
-                            <span class="summary-label">Total:</span>
-                            <span class="summary-value">${{ total_con_envio|format_price }}</span>
-                        </div>
+                    <div id="resumen-pago-container"
+                         hx-get="/delivery/pedido/{{ pedido.id }}/resumen_pago"
+                         hx-trigger="refresh-resumen from:body"
+                         hx-swap="innerHTML">
+                        {% include 'ventas/delivery/_partials/resumen_pago.html' %}
                     </div>
                 </div>
             </div>
@@ -224,10 +207,10 @@
                 <div class="card mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <div class="card-body text-center py-4">
                         <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Total a Cobrar</h6>
-                        <h2 class="display-4 fw-bold mb-0">
+                        <h2 class="display-4 fw-bold mb-0" id="modal-total-cobrar">
                             ${{ (pedido.total + (pedido.costo_envio or 0))|format_price }}
                         </h2>
-                        <small style="opacity: 0.8;">
+                        <small style="opacity: 0.8;" id="modal-desglose-total">
                             Productos: ${{ pedido.total|format_price }} + Envío: ${{ (pedido.costo_envio or 0)|format_price }}
                         </small>
                     </div>
@@ -349,5 +332,34 @@
             faltaEl.textContent = '$' + Math.abs(vuelto).toLocaleString('es-CL');
         }
     }
+    
+    // Escuchar evento refresh-resumen para actualizar el modal de pago también
+    document.body.addEventListener('refresh-resumen', function() {
+        // Obtener el nuevo total del resumen actualizado después de un pequeño delay
+        setTimeout(function() {
+            const resumenContainer = document.getElementById('resumen-pago-container');
+            if (resumenContainer) {
+                // Extraer el total del resumen
+                const totalElement = resumenContainer.querySelector('.summary-total .summary-value');
+                if (totalElement) {
+                    const nuevoTotal = totalElement.textContent;
+                    const modalTotal = document.getElementById('modal-total-cobrar');
+                    if (modalTotal) {
+                        modalTotal.textContent = nuevoTotal;
+                    }
+                }
+                // Extraer subtotal y envío
+                const rows = resumenContainer.querySelectorAll('.summary-row');
+                if (rows.length >= 3) {
+                    const subtotal = rows[0].querySelector('.summary-value').textContent;
+                    const envio = rows[2].querySelector('.summary-value').textContent;
+                    const desglose = document.getElementById('modal-desglose-total');
+                    if (desglose) {
+                        desglose.textContent = `Productos: ${subtotal} + Envío: ${envio}`;
+                    }
+                }
+            }
+        }, 100);
+    });
 </script>
 {% endif %}

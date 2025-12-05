@@ -117,32 +117,14 @@
                     Items del Pedido ({{ items|length }})
                 </h2>
             </div>
-            <div class="card-content">
-                <div class="items-list">
-                    {% for item in items %}
-                    <div class="item-row">
-                        <div class="item-info">
-                            <div class="item-image">
-                                {% if item.producto.img_path %}
-                                <img src="{{ url_for('static', filename='uploads/images/' + item.producto.img_path) }}" 
-                                     alt="{{ item.producto.nombre }}">
-                                {% else %}
-                                <div class="item-placeholder">🍽️</div>
-                                {% endif %}
-                            </div>
-                            <div class="item-details">
-                                <p class="item-name">{{ item.producto.nombre }}</p>
-                                <p class="item-price">${{ item.precio_venta|format_price }} c/u</p>
-                            </div>
-                        </div>
-                        <div class="item-quantity">
-                            <span class="quantity-badge">x{{ item.cantidad }}</span>
-                        </div>
-                        <div class="item-subtotal">
-                            <span class="subtotal-value">${{ (item.precio_venta * item.cantidad)|format_price }}</span>
-                        </div>
+            <div id="items-container"
+                 hx-get="/mostrador/pedido/{{ pedido.id }}/items"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -158,34 +140,13 @@
                     Resumen de Pago
                 </h2>
             </div>
-            <div class="card-content">
-                <div class="space-y-3">
-                    <div class="summary-row">
-                        <span class="summary-label">Subtotal:</span>
-                        <span class="summary-value">${{ pedido.total|format_price }}</span>
-                    </div>
-                    
-                    <div class="separator"></div>
-                    
-                    <div class="summary-row summary-total">
-                        <span class="summary-label">Total:</span>
-                        <span class="summary-value">${{ pedido.total|format_price }}</span>
-                    </div>
-                    
-                    <div class="separator"></div>
-                    
-                    <div class="summary-row">
-                        <span class="summary-label">Estado de Pago:</span>
-                        <span class="summary-value">
-                            {% if pedido.comprobante_id %}
-                                <span class="badge bg-success">✓ Pagado</span>
-                                {% if pedido.comprobante %}
-                                    <small class="text-muted ms-2">{{ pedido.comprobante.tipo_comprobante }} - {{ pedido.numero_comprobante }}</small>
-                                {% endif %}
-                            {% else %}
-                                <span class="badge bg-warning text-dark">Pendiente de cobro</span>
-                            {% endif %}
-                        </span>
+            <div id="resumen-pago-container"
+                 hx-get="/mostrador/pedido/{{ pedido.id }}/resumen_pago"
+                 hx-trigger="load, refresh-resumen from:body"
+                 hx-swap="innerHTML">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
                     </div>
                 </div>
             </div>
@@ -226,7 +187,7 @@
                 <div class="card mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <div class="card-body text-center py-4">
                         <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Total a Cobrar</h6>
-                        <h2 class="display-4 fw-bold mb-0">
+                        <h2 class="display-4 fw-bold mb-0" id="modal-total-cobrar">
                             ${{ pedido.total|format_price }}
                         </h2>
                     </div>
@@ -274,15 +235,14 @@
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control text-end fs-4" id="montoRecibidoInput" 
                                    placeholder="0" min="0" step="100"
-                                   oninput="calcularVueltoModal({{ pedido.total|float }})">
+                                   oninput="calcularVueltoModal(totalPedidoMostrador)">
                         </div>
                         
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            {% set total_pedido = pedido.total|float %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal({{ total_pedido|round|int }}, {{ total_pedido }})">Exacto</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(5000, {{ total_pedido }})">$5.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(10000, {{ total_pedido }})">$10.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(20000, {{ total_pedido }})">$20.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(Math.round(totalPedidoMostrador), totalPedidoMostrador)">Exacto</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(5000, totalPedidoMostrador)">$5.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(10000, totalPedidoMostrador)">$10.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(20000, totalPedidoMostrador)">$20.000</button>
                         </div>
                         
                         <div class="text-center p-3 rounded" id="vueltoContainerModal" style="background: #e8f5e9; display: none;">
@@ -313,6 +273,11 @@
 {% endif %}
 
 <script>
+    // Variable global para el total del pedido
+    if (typeof totalPedidoMostrador === 'undefined') {
+        var totalPedidoMostrador = {{ pedido.total|float }};
+    }
+    
     function mostrarModalCobro(pedidoId, total) {
         var modalEl = document.getElementById('modalCobro');
         if (modalEl) {
@@ -358,5 +323,23 @@
             faltaEl.textContent = '$' + Math.abs(vuelto).toLocaleString('es-CL');
         }
     }
+    
+    // Escuchar evento refresh-resumen para actualizar total del modal
+    document.body.addEventListener('htmx:afterSettle', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'resumen-pago-container') {
+            // Obtener el nuevo total del elemento resumen
+            const totalEl = document.querySelector('#resumen-pago-container .summary-total .summary-value');
+            if (totalEl) {
+                const nuevoTotal = totalEl.textContent.trim();
+                const modalTotalEl = document.getElementById('modal-total-cobrar');
+                if (modalTotalEl) {
+                    modalTotalEl.textContent = nuevoTotal;
+                }
+                // Extraer valor numérico y actualizar variable global
+                const match = nuevoTotal.replace(/[$.]/g, '').replace(',', '.');
+                totalPedidoMostrador = parseFloat(match) || totalPedidoMostrador;
+            }
+        }
+    });
 </script>
 </div>

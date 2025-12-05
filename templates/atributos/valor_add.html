@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block left_panel %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4 text-center">
+        <i class="bi bi-plus-circle"></i> Nuevo Valor
+    </h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{{ url_for('mostrador.index') }}">Inicio</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('atributos.get_atributos') }}">Atributos</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('atributos.get_valores', atributo_id=atributo.id) }}">{{ atributo.nombre }}</a></li>
+        <li class="breadcrumb-item active">Nuevo Valor</li>
+    </ol>
+
+    <div class="card">
+        <div class="card-header">
+            Agregar valor a: <strong>{{ atributo.nombre }}</strong>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.valor.label(class="form-label") }}
+                        {{ form.valor(class="form-control", placeholder="Ej: Chocolate, Grande, Extra queso") }}
+                        {% for error in form.valor.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        {{ form.precio_adicional.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.precio_adicional(class="form-control", placeholder="0") }}
+                        </div>
+                        <small class="text-muted">Precio adicional si aplica (0 = sin cargo)</small>
+                        {% for error in form.precio_adicional.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="col-12">
+                        {{ form.descripcion.label(class="form-label") }}
+                        {{ form.descripcion(class="form-control", rows="2", placeholder="Descripción opcional") }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        {{ form.orden.label(class="form-label") }}
+                        {{ form.orden(class="form-control", placeholder="0") }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-check mt-4">
+                            {{ form.disponible(class="form-check-input", checked=True) }}
+                            {{ form.disponible.label(class="form-check-label") }}
+                        </div>
+                        <small class="text-muted">Si está disponible para seleccionar</small>
+                    </div>
+                    
+                    <div class="col-12 mt-4">
+                        <a href="{{ url_for('atributos.get_valores', atributo_id=atributo.id) }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

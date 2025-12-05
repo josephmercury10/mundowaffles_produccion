@@ -1,7 +1,8 @@
 from datetime import datetime
-from models.AtributoProducto_model import AtributoProducto
-from models.ValorAtributo_model import ValorAtributo
-from models.Producto_model import ProductoAtributo, Producto, ProductoVenta
+from src.models.AtributoProducto_model import AtributoProducto
+from src.models.ValorAtributo_model import ValorAtributo
+from src.models.Producto_model import ProductoAtributo, Producto
+from src.models.Venta_model import ProductoVenta
 from utils.db import db
 # ==========================================
 # MÉTODOS HELPER PARA LOS MODELOS

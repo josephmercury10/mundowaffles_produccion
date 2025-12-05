@@ -70,6 +70,12 @@
                             {{ form.categorias.label(class="form-label") }}
                             {{ form.categorias(class="form-control", multiple=True, size=3, title="Seleccione las categorías") }}
                         </div>
+                        <!-----------------------Extras/Atributos-------------------------------------------->
+                        <div class="col-md-6 mb-2">
+                            {{ form.atributos.label(class="form-label") }}
+                            {{ form.atributos(class="form-control", multiple=True, size=3, title="Seleccione los extras disponibles") }}
+                            <small class="text-muted">Opcional: Seleccione los extras que aplican a este producto</small>
+                        </div>
 
                         <div class="col-12 text-center">
                             {{ form.submit(class="btn btn-primary") }}

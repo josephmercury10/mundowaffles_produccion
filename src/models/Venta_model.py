@@ -46,14 +46,14 @@ class ProductoVenta(db.Model):
     def calcular_precio_extras(self):
         """
         Calcula el total de extras desde el JSON
+        Formato: [{"id": 1, "valor": "Nutella", "precio_adicional": 500}, ...]
         """
         if not self.atributos_seleccionados:
             return 0.00
             
         total_extras = 0.00
-        for atributo in self.atributos_seleccionados:
-            for valor in atributo.get('valores', []):
-                total_extras += float(valor.get('precio', 0))
+        for extra in self.atributos_seleccionados:
+            total_extras += float(extra.get('precio_adicional', 0))
         return total_extras
 
 class Venta(db.Model):
