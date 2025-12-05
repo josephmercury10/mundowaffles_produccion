@@ -14,6 +14,7 @@ class Printer(db.Model):
     ancho_caracteres = db.Column(db.SmallInteger, nullable=False, default=42)
     cortar_papel = db.Column(db.Boolean, nullable=False, default=True)
     feed_lines = db.Column(db.SmallInteger, nullable=False, default=3)
+    printhost_url = db.Column(db.String(200), nullable=True)  # URL/IP pública del PrintHost del cliente
     estado = db.Column(db.SmallInteger, nullable=False, default=1)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)

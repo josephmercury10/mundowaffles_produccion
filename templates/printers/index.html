@@ -39,6 +39,7 @@
           <th>#</th>
           <th>Nombre</th>
           <th>Driver</th>
+          <th>PrintHost URL</th>
           <th>Tipo</th>
           <th>Perfil</th>
           <th>Ancho</th>
@@ -54,6 +55,7 @@
           <td>{{ p.id }}</td>
           <td>{{ p.nombre }}</td>
           <td><code>{{ p.driver_name }}</code></td>
+          <td class="text-truncate" style="max-width:220px">{{ p.printhost_url or '-' }}</td>
           <td>{{ (p.tipo|from_json)|join(', ') }}</td>
           <td>{{ (p.perfil|from_json)|join(', ') }}</td>
           <td>{{ p.ancho_caracteres }}</td>
@@ -87,7 +89,7 @@
         </tr>
       {% else %}
         <tr>
-          <td colspan="9" class="text-center text-muted">No hay impresoras configuradas</td>
+          <td colspan="11" class="text-center text-muted">No hay impresoras configuradas</td>
         </tr>
       {% endfor %}
       </tbody>

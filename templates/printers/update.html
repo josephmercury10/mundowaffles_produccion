@@ -12,6 +12,11 @@
         <label class="form-label">Driver (Windows)</label>
         <input name="driver_name" class="form-control" value="{{ printer.driver_name }}" required />
       </div>
+      <div class="col-md-12">
+        <label class="form-label">URL/IP pública PrintHost</label>
+        <input name="printhost_url" type="text" class="form-control" value="{{ printer.printhost_url or '' }}" placeholder="http://mi-ip-publica:8765" />
+        <div class="form-text">Se usa en producción (PA) para enviar trabajos a esta impresora.</div>
+      </div>
       <div class="col-md-4">
         <label class="form-label">Tipo (selecciona uno o más)</label>
         {% set tipos_sel = printer.tipo|from_json if printer.tipo else [] %}

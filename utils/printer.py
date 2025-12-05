@@ -662,7 +662,7 @@ def get_printer_by_profile(perfil: str, tipo: str = None, app=None):
         from utils.printer_manager import obtener_por_perfil
         pr = obtener_por_perfil(perfil, tipo)
         if pr and pr.driver_name:
-            return ThermalPrinter(pr.driver_name, printhost_url)
+            return ThermalPrinter(pr.driver_name, pr.printhost_url or printhost_url)
     except Exception:
         pass
     

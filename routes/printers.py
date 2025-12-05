@@ -35,6 +35,7 @@ def add():
             printer = Printer(
                 nombre=data.get('nombre', '').strip(),
                 driver_name=data.get('driver_name', '').strip(),
+                printhost_url=data.get('printhost_url', '').strip() or None,
                 tipo=json.dumps(tipos),
                 perfil=json.dumps(perfiles),
                 ancho_caracteres=int(data.get('ancho_caracteres', 42) or 42),
@@ -66,6 +67,7 @@ def update(printer_id: int):
                 return render_template('printers/update.html', printer=printer)
             printer.nombre = data.get('nombre', printer.nombre).strip()
             printer.driver_name = data.get('driver_name', printer.driver_name).strip()
+            printer.printhost_url = data.get('printhost_url', printer.printhost_url).strip() or None
             printer.tipo = json.dumps(tipos)
             printer.perfil = json.dumps(perfiles)
             printer.ancho_caracteres = int(data.get('ancho_caracteres', printer.ancho_caracteres) or printer.ancho_caracteres)
