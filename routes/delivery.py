@@ -451,15 +451,23 @@ def detalle_pedido(pedido_id):
 @delivery_bp.route('/pedidos_estado/<estado>', methods=['GET'])
 def ventas_estado(estado):
     try:
+        from datetime import datetime, date
         # Convertir el estado a un entero
         estado = int(estado)
 
         # Filtrar las ventas de delivery según el estado
         # tipoventa_id=2 para delivery
-        ventas = Venta.query.filter(
+        query = Venta.query.filter(
             Venta.estado_delivery == estado,
             Venta.tipoventa_id == 2
-        ).order_by(Venta.fecha_hora.desc()).all()
+        )
+        
+        # Si es estado 3 (entregados), filtrar solo los del día actual
+        if estado == 3:
+            hoy = date.today()
+            query = query.filter(db.func.date(Venta.fecha_hora) == hoy)
+        
+        ventas = query.order_by(Venta.fecha_hora.desc()).all()
 
         # Renderizar un fragmento de HTML con las ventas
         return render_template('ventas/delivery/_partials/pedidos.html', ventas=ventas)

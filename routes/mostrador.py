@@ -332,13 +332,25 @@ def guardar_pedido():
 def pedidos_estado(estado):
     """Obtiene los pedidos según su estado"""
     try:
+        from datetime import datetime, date
         # Filtrar las ventas de mostrador según el estado
         # tipoventa_id=1 para mostrador
+        hoy = date.today()
+        
         if estado == 3:
             # "Pagados" ahora es estado de pago independiente del estado_mostrador
+            # Filtrar solo los del día actual
             ventas = Venta.query.filter(
                 Venta.tipoventa_id == 1,
-                Venta.comprobante_id.isnot(None)
+                Venta.comprobante_id.isnot(None),
+                db.func.date(Venta.fecha_hora) == hoy
+            ).order_by(Venta.fecha_hora.desc()).all()
+        elif estado == 2:
+            # "Listos" - también filtrar solo los del día actual
+            ventas = Venta.query.filter(
+                Venta.estado_mostrador == estado,
+                Venta.tipoventa_id == 1,
+                db.func.date(Venta.fecha_hora) == hoy
             ).order_by(Venta.fecha_hora.desc()).all()
         else:
             ventas = Venta.query.filter(
