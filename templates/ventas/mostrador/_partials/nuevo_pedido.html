@@ -26,66 +26,6 @@
     </form>
 </div>
 
-<!-- Vista previa de productos disponibles -->
-<div class="card card-shadow-medium mt-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <svg class="icon me-2" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2;">
-                <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
-                <line x1="6" y1="17" x2="18" y2="17"></line>
-            </svg>
-            Productos Disponibles
-        </h5>
-        <span class="badge bg-secondary">{{ productos|length }} productos</span>
-    </div>
-    <div class="card-content p-3">
-        <div class="productos-lista">
-            {% for producto in productos %}
-            <div class="producto-item">
-                <span class="producto-nombre">{{ producto.nombre }}</span>
-                <span class="producto-precio">${{ producto.precio|format_price }}</span>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
 
-<style>
-    .productos-lista {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 0.5rem;
-    }
-    
-    .producto-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 1rem;
-        background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-    }
-    
-    .producto-item:hover {
-        background-color: #fff3e0;
-        border-color: #ff6a00;
-        box-shadow: 0 2px 8px rgba(255, 106, 0, 0.15);
-    }
-    
-    .producto-nombre {
-        font-weight: 500;
-        color: #333;
-        font-size: 0.9rem;
-        text-transform: capitalize;
-    }
-    
-    .producto-precio {
-        font-weight: 700;
-        color: #ff6a00;
-        font-size: 0.95rem;
-        white-space: nowrap;
-        margin-left: 1rem;
-    }
-</style>
+
+
