@@ -1,13 +1,11 @@
 {% extends "base.html" %}
-
-<body>
-
+{% block full_content %}
+<div class="container-fluid px-4">
     {% block styles %}
     <link rel="stylesheet" href="//cdn.datatables.net/2.3.3/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/clientes.css') }}">
     {% endblock %}
 
-    {% block left_panel %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0"><i class="fas fa-users me-2"></i>Clientes</h1>
         <a href="{{ url_for('clientes.create_cliente') }}" class="btn btn-primary">
@@ -118,6 +116,8 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+
              <!-- Modal de eliminacion/restauración cliente -->
 {% for cliente in clientes %}
 <div class="modal fade" id="confirmModal-{{ cliente.id }}" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
@@ -157,11 +157,8 @@
 </div>
 {% endfor %}
     </div>
-
-    {% endblock %}
-        {% block right_panel %}
-        {% endblock %}
-           
+</div>
+{% endblock %}
 
           {% block scripts %}
           <script src="//cdn.datatables.net/2.3.3/js/dataTables.min.js"></script>
@@ -169,4 +166,3 @@
           <script src="{{ url_for('static', filename='js/clientes.js') }}"></script>
           {% endblock %}
 
-</body>

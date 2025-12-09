@@ -28,6 +28,7 @@ def create_cliente():
                     persona = Persona(
                         razon_social=form.razon_social.data,
                         direccion=form.direccion.data,
+                        telefono=form.telefono.data,
                         tipo_persona=form.tipo_persona.data,
                         documento_id=form.documento_id.data,
                         numero_documento=form.numero_documento.data
@@ -69,6 +70,7 @@ def update_cliente(cliente_id):
             try:
                 persona.razon_social = form.razon_social.data
                 persona.direccion = form.direccion.data
+                persona.telefono = form.telefono.data
                 persona.tipo_persona = form.tipo_persona.data
                 persona.documento_id = form.documento_id.data
                 persona.numero_documento = form.numero_documento.data

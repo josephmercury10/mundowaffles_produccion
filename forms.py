@@ -59,6 +59,7 @@ class ProductoForm(FlaskForm):
 class ClienteForm(FlaskForm):
     razon_social = StringField(validators=[DataRequired()])
     direccion = StringField('Dirección:', validators=[DataRequired()])
+    telefono = StringField('Teléfono:', validators=[DataRequired(), length(min=8, max=20)])
     tipo_persona = SelectField('Tipo de Persona:', choices=[('Persona natural', 'Persona natural'), ('Persona Juridica', 'Persona Juridica')], validators=[DataRequired()])
     documento_id = SelectField('Tipo de Documento:', choices=[], validators=[DataRequired()])
     numero_documento = StringField('Número de Documento:', validators=[DataRequired(), length(min=1, max=10)])

@@ -40,10 +40,17 @@
 .producto-descripcion {
     font-size: 0.85rem;
     color: #6c757d;
-    max-width: 150px;
+    max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+}
+
+/* Forzar tabla a respetar anchos */
+#datatablesSimple {
+    table-layout: fixed;
+    width: 100%;
 }
 
 /* Ajustar ancho de columnas */

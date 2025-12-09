@@ -1,8 +1,6 @@
 {% extends "base.html" %}
-
-<body>
-    <div class="main-container">
-            {% block left_panel %}
+{% block full_content %}
+<div class="container-fluid px-4">
             <div class="container w-100 border border-3 border-primary rounded p-4 mt-3">
                 <form action="" method="post">
                     {{ form.hidden_tag() }}
@@ -24,10 +22,18 @@
                             {% endfor %}
                         </div>
                         <!-----------------------Dirección-------------------------------------------->
-                        <div class="col-md-12 mb-2">
+                        <div class="col-md-8 mb-2">
                             {{ form.direccion.label(class="form-label") }}
                             {{ form.direccion(class="form-control") }}
                             {% for error in form.direccion.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <!-----------------------Teléfono-------------------------------------------->
+                        <div class="col-md-4 mb-2">
+                            {{ form.telefono.label(class="form-label") }}
+                            {{ form.telefono(class="form-control", placeholder="+56 9 1234 5678") }}
+                            {% for error in form.telefono.errors %}
                             <span style="color: red;">{{ error }}</span>
                             {% endfor %}
                         </div>
@@ -79,9 +85,10 @@
                 </form>
             </div>
 
-            {% endblock %}
 
     </div>
+
+{% endblock %}
 
     {% block scripts %}
     <script>
