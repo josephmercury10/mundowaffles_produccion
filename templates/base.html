@@ -128,9 +128,11 @@
     </nav>
 
     <div class="main-container">
+      {% block full_content %}
       <div class="left-panel">{% block left_panel %} {%endblock %}</div>
 
       <div class="right-panel">{% block right_panel %} {%endblock %}</div>
+      {% endblock %}
     </div>
   </body>
 
