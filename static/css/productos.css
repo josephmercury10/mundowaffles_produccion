@@ -1,0 +1,87 @@
+/* Estilos para el mantenedor de Productos */
+
+/* Estilos para filtros superiores */
+.filters-row {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-label {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+/* Estilos para la tabla */
+#datatablesSimple tbody tr:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+.producto-nombre {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.producto-codigo {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.producto-precio {
+    font-weight: 600;
+    color: #28a745;
+}
+
+.producto-descripcion {
+    font-size: 0.85rem;
+    color: #6c757d;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajustar ancho de columnas */
+#datatablesSimple th:nth-child(1),
+#datatablesSimple td:nth-child(1) { width: 8%; }
+
+#datatablesSimple th:nth-child(2),
+#datatablesSimple td:nth-child(2) { width: 15%; }
+
+#datatablesSimple th:nth-child(3),
+#datatablesSimple td:nth-child(3) { width: 8%; }
+
+#datatablesSimple th:nth-child(4),
+#datatablesSimple td:nth-child(4) { width: 15%; }
+
+#datatablesSimple th:nth-child(5),
+#datatablesSimple td:nth-child(5) { width: 10%; }
+
+#datatablesSimple th:nth-child(6),
+#datatablesSimple td:nth-child(6) { width: 10%; }
+
+#datatablesSimple th:nth-child(7),
+#datatablesSimple td:nth-child(7) { width: 12%; }
+
+#datatablesSimple th:nth-child(8),
+#datatablesSimple td:nth-child(8) { width: 8%; }
+
+#datatablesSimple th:nth-child(9),
+#datatablesSimple td:nth-child(9) { width: 14%; }
+
+/* Botones más compactos */
+.btn-acciones .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Categorías */
+.categoria-badge {
+    font-size: 0.7rem;
+    margin: 1px;
+}

@@ -1,0 +1,67 @@
+/* Estilos para el mantenedor de Clientes */
+
+/* Estilos para filtros superiores */
+.filters-row {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-label {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+/* Estilos para la tabla */
+#datatablesSimple tbody tr:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+.cliente-nombre {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.cliente-direccion {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.doc-tipo {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.doc-numero {
+    font-weight: 500;
+}
+
+/* Ajustar ancho de columnas */
+#datatablesSimple th:nth-child(1),
+#datatablesSimple td:nth-child(1) { width: 25%; }
+
+#datatablesSimple th:nth-child(2),
+#datatablesSimple td:nth-child(2) { width: 25%; }
+
+#datatablesSimple th:nth-child(3),
+#datatablesSimple td:nth-child(3) { width: 15%; }
+
+#datatablesSimple th:nth-child(4),
+#datatablesSimple td:nth-child(4) { width: 10%; }
+
+#datatablesSimple th:nth-child(5),
+#datatablesSimple td:nth-child(5) { width: 10%; }
+
+#datatablesSimple th:nth-child(6),
+#datatablesSimple td:nth-child(6) { width: 15%; }
+
+/* Botones más compactos */
+.btn-acciones .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}

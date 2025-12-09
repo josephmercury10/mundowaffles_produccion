@@ -15,8 +15,10 @@ productos_bp = Blueprint('productos', __name__ , url_prefix='/productos')
 def get_productos():
     
     productos = Producto.query.all()
+    categorias = Categoria.query.join(Categoria.caracteristica).filter(Caracteristica.estado == 1).all()
+    marcas = Marca.query.join(Marca.caracteristica).filter(Caracteristica.estado == 1).all()
 
-    return render_template('productos/productos.html', productos=productos)
+    return render_template('productos/productos.html', productos=productos, categorias=categorias, marcas=marcas)
 
 
 @productos_bp.route('/add', methods=['GET', 'POST'])
