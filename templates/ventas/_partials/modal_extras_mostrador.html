@@ -210,7 +210,7 @@ document.getElementById('btn-confirmar-extras-mostrador').addEventListener('clic
     const formData = new FormData();
     formData.append('producto_id', productoId);
     formData.append('nombre', nombre);
-    formData.append('precio', precioBase);  // Precio base, el backend calcula el total
+    formData.append('precio', precioTotal);  // Precio total (base + extras)
     formData.append('precio_base', precioBase);
     formData.append('extras', JSON.stringify(extrasSeleccionadosMostrador));
     

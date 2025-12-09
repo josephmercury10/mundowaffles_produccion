@@ -12,13 +12,13 @@
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary"
                                 hx-post="/mostrador/actualizar_cantidad"
-                                hx-vals='{"item_id": "{{ item.id }}", "accion": "disminuir"}'
+                                hx-vals='{"item_id": "{{ item.item_key }}", "accion": "disminuir"}'
                                 hx-target="#carrito-container"
                                 hx-swap="innerHTML">−</button>
                         <span class="btn btn-light disabled">{{ item.cantidad }}</span>
                         <button class="btn btn-outline-secondary"
                                 hx-post="/mostrador/actualizar_cantidad"
-                                hx-vals='{"item_id": "{{ item.id }}", "accion": "aumentar"}'
+                                hx-vals='{"item_id": "{{ item.item_key }}", "accion": "aumentar"}'
                                 hx-target="#carrito-container"
                                 hx-swap="innerHTML">+</button>
                     </div>
@@ -28,7 +28,7 @@
                 </td>
                 <td class="align-middle text-center" style="width: 40px;">
                     <button class="btn btn-sm btn-outline-danger"
-                            hx-delete="/mostrador/eliminar_producto/{{ item.id }}"
+                            hx-delete="/mostrador/eliminar_producto/{{ item.item_key }}"
                             hx-target="#carrito-container"
                             hx-swap="innerHTML">🗑️</button>
                 </td>
