@@ -231,42 +231,43 @@
                     </div>
                 </div>
 
-                <!-- Método de Pago -->
+                <!-- Método de Pago desde BD -->
                 <div class="mb-4">
                     <label class="form-label fw-bold">💳 Método de Pago</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="metodo_pago" id="efectivo_pago" value="efectivo" checked onchange="toggleSeccionEfectivo(true)">
-                        <label class="btn btn-outline-success" for="efectivo_pago">
-                            💵 Efectivo
+                    <div class="btn-group w-100 flex-wrap" role="group">
+                        {% for metodo in metodos_pago %}
+                        <input type="radio" class="btn-check" name="metodo_pago_id" 
+                               id="metodo_del_{{ metodo.id }}" value="{{ metodo.id }}"
+                               data-requiere-monto="{{ metodo.requiere_monto_recibido|lower }}"
+                               data-requiere-referencia="{{ metodo.requiere_referencia|lower }}"
+                               onchange="toggleSeccionPagoDelivery(this)"
+                               {% if loop.first %}checked{% endif %}>
+                        <label class="btn btn-outline-{% if metodo.nombre == 'Efectivo' %}success{% elif 'Tarjeta' in metodo.nombre %}info{% else %}warning{% endif %}" 
+                               for="metodo_del_{{ metodo.id }}">
+                            {% if metodo.nombre == 'Efectivo' %}💵{% elif 'Débito' in metodo.nombre %}💳{% elif 'Crédito' in metodo.nombre %}💳{% else %}📱{% endif %}
+                            {{ metodo.nombre }}
                         </label>
-                        <input type="radio" class="btn-check" name="metodo_pago" id="tarjeta_pago" value="tarjeta" onchange="toggleSeccionEfectivo(false)">
-                        <label class="btn btn-outline-info" for="tarjeta_pago">
-                            💳 Tarjeta
-                        </label>
-                        <input type="radio" class="btn-check" name="metodo_pago" id="transfer_pago" value="transferencia" onchange="toggleSeccionEfectivo(false)">
-                        <label class="btn btn-outline-warning" for="transfer_pago">
-                            📱 Transfer
-                        </label>
+                        {% endfor %}
                     </div>
                 </div>
 
-                <!-- Calculadora de Vuelto -->
+                <!-- Sección Efectivo (monto recibido y vuelto) -->
                 <div id="seccionEfectivoModal" class="card bg-light">
                     <div class="card-body">
                         <label class="form-label fw-bold">💵 Monto Recibido</label>
                         <div class="input-group input-group-lg mb-3">
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control text-end fs-4" id="montoRecibidoInput" 
+                                   name="monto_recibido"
                                    placeholder="0" min="0" step="100"
-                                   oninput="calcularVueltoModal({{ (pedido.total + (pedido.costo_envio or 0))|float }})">
+                                   oninput="calcularVueltoModal(totalPedidoDelivery)">
                         </div>
                         
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            {% set total_pedido = (pedido.total + (pedido.costo_envio or 0))|float %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal({{ total_pedido|round|int }}, {{ total_pedido }})">Exacto</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(5000, {{ total_pedido }})">$5.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(10000, {{ total_pedido }})">$10.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(20000, {{ total_pedido }})">$20.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(Math.round(totalPedidoDelivery), totalPedidoDelivery)">Exacto</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(5000, totalPedidoDelivery)">$5.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(10000, totalPedidoDelivery)">$10.000</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setMontoModal(20000, totalPedidoDelivery)">$20.000</button>
                         </div>
                         
                         <div class="text-center p-3 rounded" id="vueltoContainerModal" style="background: #e8f5e9; display: none;">
@@ -279,12 +280,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Sección Referencia (para tarjeta/transferencia) -->
+                <div id="seccionReferenciaModal" class="card bg-light" style="display: none;">
+                    <div class="card-body">
+                        <label class="form-label fw-bold">🔢 Referencia de Pago</label>
+                        <input type="text" class="form-control" id="referenciaPagoInput" 
+                               name="referencia_pago"
+                               placeholder="Nº operación o últimos 4 dígitos">
+                        <small class="text-muted">Opcional: número de operación o referencia</small>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success btn-lg" id="btnConfirmarPago"
                         hx-post="/delivery/cobrar_pedido/{{ pedido.id }}"
-                        hx-include="[name='tipo_comprobante_delivery'], [name='metodo_pago']"
+                        hx-include="[name='tipo_comprobante_delivery'], [name='metodo_pago_id'], [name='monto_recibido'], [name='referencia_pago']"
                         hx-target="#estado-pedido-container"
                         hx-swap="innerHTML"
                         onclick="cerrarModalPago()">
@@ -296,13 +308,49 @@
 </div>
 
 <script>
+    // Variable global para el total del pedido
+    var totalPedidoDelivery = {{ (pedido.total + (pedido.costo_envio or 0))|float }};
+    
     function cerrarModalPago() {
         var modal = bootstrap.Modal.getInstance(document.getElementById('modalPagoDelivery'));
         if (modal) modal.hide();
     }
     
+    function mostrarModalPagoDelivery() {
+        var modalEl = document.getElementById('modalPagoDelivery');
+        if (modalEl) {
+            var modal = new bootstrap.Modal(modalEl);
+            modal.show();
+            // Inicializar la sección correcta según el método seleccionado
+            const checkedMetodo = document.querySelector('input[name="metodo_pago_id"]:checked');
+            if (checkedMetodo) {
+                toggleSeccionPagoDelivery(checkedMetodo);
+            }
+        }
+    }
+    
+    function toggleSeccionPagoDelivery(radio) {
+        const requiereMonto = radio.dataset.requiereMonto === 'true';
+        const requiereReferencia = radio.dataset.requiereReferencia === 'true';
+        
+        document.getElementById('seccionEfectivoModal').style.display = requiereMonto ? 'block' : 'none';
+        document.getElementById('seccionReferenciaModal').style.display = requiereReferencia ? 'block' : 'none';
+        
+        // Limpiar campos al cambiar
+        if (!requiereMonto) {
+            document.getElementById('montoRecibidoInput').value = '';
+            document.getElementById('vueltoContainerModal').style.display = 'none';
+            document.getElementById('faltaContainerModal').style.display = 'none';
+        }
+        if (!requiereReferencia) {
+            document.getElementById('referenciaPagoInput').value = '';
+        }
+    }
+    
+    // Mantener compatibilidad con función anterior
     function toggleSeccionEfectivo(show) {
         document.getElementById('seccionEfectivoModal').style.display = show ? 'block' : 'none';
+        document.getElementById('seccionReferenciaModal').style.display = show ? 'none' : 'block';
     }
     
     function setMontoModal(monto, total) {
@@ -347,6 +395,9 @@
                     if (modalTotal) {
                         modalTotal.textContent = nuevoTotal;
                     }
+                    // Actualizar variable global
+                    const match = nuevoTotal.replace(/[$.]/g, '').replace(',', '.');
+                    totalPedidoDelivery = parseFloat(match) || totalPedidoDelivery;
                 }
                 // Extraer subtotal y envío
                 const rows = resumenContainer.querySelectorAll('.summary-row');

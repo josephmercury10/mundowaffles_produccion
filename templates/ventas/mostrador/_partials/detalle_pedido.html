@@ -208,32 +208,34 @@
                     </div>
                 </div>
 
-                <!-- Método de Pago -->
+                <!-- Método de Pago desde BD -->
                 <div class="mb-4">
                     <label class="form-label fw-bold">💳 Método de Pago</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="metodo_pago" id="efectivo_pago" value="efectivo" checked onchange="toggleSeccionEfectivo(true)">
-                        <label class="btn btn-outline-success" for="efectivo_pago">
-                            💵 Efectivo
+                    <div class="btn-group w-100 flex-wrap" role="group">
+                        {% for metodo in metodos_pago %}
+                        <input type="radio" class="btn-check" name="metodo_pago_id" 
+                               id="metodo_{{ metodo.id }}" value="{{ metodo.id }}"
+                               data-requiere-monto="{{ metodo.requiere_monto_recibido|lower }}"
+                               data-requiere-referencia="{{ metodo.requiere_referencia|lower }}"
+                               onchange="toggleSeccionPago(this)"
+                               {% if loop.first %}checked{% endif %}>
+                        <label class="btn btn-outline-{% if metodo.nombre == 'Efectivo' %}success{% elif 'Tarjeta' in metodo.nombre %}info{% else %}warning{% endif %}" 
+                               for="metodo_{{ metodo.id }}">
+                            {% if metodo.nombre == 'Efectivo' %}💵{% elif 'Débito' in metodo.nombre %}💳{% elif 'Crédito' in metodo.nombre %}💳{% else %}📱{% endif %}
+                            {{ metodo.nombre }}
                         </label>
-                        <input type="radio" class="btn-check" name="metodo_pago" id="tarjeta_pago" value="tarjeta" onchange="toggleSeccionEfectivo(false)">
-                        <label class="btn btn-outline-info" for="tarjeta_pago">
-                            💳 Tarjeta
-                        </label>
-                        <input type="radio" class="btn-check" name="metodo_pago" id="transfer_pago" value="transferencia" onchange="toggleSeccionEfectivo(false)">
-                        <label class="btn btn-outline-warning" for="transfer_pago">
-                            📱 Transfer
-                        </label>
+                        {% endfor %}
                     </div>
                 </div>
 
-                <!-- Calculadora de Vuelto -->
+                <!-- Sección Efectivo (monto recibido y vuelto) -->
                 <div id="seccionEfectivoModal" class="card bg-light">
                     <div class="card-body">
                         <label class="form-label fw-bold">💵 Monto Recibido</label>
                         <div class="input-group input-group-lg mb-3">
                             <span class="input-group-text">$</span>
                             <input type="number" class="form-control text-end fs-4" id="montoRecibidoInput" 
+                                   name="monto_recibido"
                                    placeholder="0" min="0" step="100"
                                    oninput="calcularVueltoModal(totalPedidoMostrador)">
                         </div>
@@ -255,12 +257,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Sección Referencia (para tarjeta/transferencia) -->
+                <div id="seccionReferenciaModal" class="card bg-light" style="display: none;">
+                    <div class="card-body">
+                        <label class="form-label fw-bold">🔢 Referencia de Pago</label>
+                        <input type="text" class="form-control" id="referenciaPagoInput" 
+                               name="referencia_pago"
+                               placeholder="Nº operación o últimos 4 dígitos">
+                        <small class="text-muted">Opcional: número de operación o referencia</small>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success btn-lg" id="btnConfirmarPago"
                         hx-post="/mostrador/cobrar_pedido/{{ pedido.id }}"
-                        hx-include="[name='tipo_comprobante'], [name='metodo_pago']"
+                        hx-include="[name='tipo_comprobante'], [name='metodo_pago_id'], [name='monto_recibido'], [name='referencia_pago']"
                         hx-target="#estado-pedido-container"
                         hx-swap="innerHTML"
                         onclick="cerrarModalCobro()">
@@ -283,6 +296,11 @@
         if (modalEl) {
             var modal = new bootstrap.Modal(modalEl);
             modal.show();
+            // Inicializar la sección correcta según el método seleccionado
+            const checkedMetodo = document.querySelector('input[name="metodo_pago_id"]:checked');
+            if (checkedMetodo) {
+                toggleSeccionPago(checkedMetodo);
+            }
         }
     }
     
@@ -292,8 +310,28 @@
         if (modal) modal.hide();
     }
     
+    function toggleSeccionPago(radio) {
+        const requiereMonto = radio.dataset.requiereMonto === 'true';
+        const requiereReferencia = radio.dataset.requiereReferencia === 'true';
+        
+        document.getElementById('seccionEfectivoModal').style.display = requiereMonto ? 'block' : 'none';
+        document.getElementById('seccionReferenciaModal').style.display = requiereReferencia ? 'block' : 'none';
+        
+        // Limpiar campos al cambiar
+        if (!requiereMonto) {
+            document.getElementById('montoRecibidoInput').value = '';
+            document.getElementById('vueltoContainerModal').style.display = 'none';
+            document.getElementById('faltaContainerModal').style.display = 'none';
+        }
+        if (!requiereReferencia) {
+            document.getElementById('referenciaPagoInput').value = '';
+        }
+    }
+    
+    // Mantener compatibilidad con función anterior
     function toggleSeccionEfectivo(show) {
         document.getElementById('seccionEfectivoModal').style.display = show ? 'block' : 'none';
+        document.getElementById('seccionReferenciaModal').style.display = show ? 'none' : 'block';
     }
     
     function setMontoModal(monto, total) {

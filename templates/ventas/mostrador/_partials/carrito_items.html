@@ -5,7 +5,16 @@
             {% for item in carrito_items %}
             <tr>
                 <td class="align-middle">
-                    <strong>{{ item.nombre[:25] }}</strong><br>
+                    <strong>{{ item.nombre_base[:25] if item.nombre_base else item.nombre[:25] }}</strong>
+                    {% if item.extras and item.extras|length > 0 %}
+                    <br>
+                    <small class="text-success">
+                        {% for extra in item.extras %}
+                        + {{ extra.valor }}{% if extra.precio_adicional > 0 %} (${{ extra.precio_adicional|format_price }}){% endif %}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                    {% endif %}
+                    <br>
                     <small class="text-muted">${{ item.precio|format_price }} c/u</small>
                 </td>
                 <td class="align-middle text-center" style="width: 100px;">

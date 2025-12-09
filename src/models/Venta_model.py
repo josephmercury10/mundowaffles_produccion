@@ -78,6 +78,13 @@ class Venta(db.Model):
     comentarios = db.Column(db.String(50), nullable=True)
     tiempo_estimado = db.Column(db.String(15), nullable=True)
     
+    # Campos de método de pago
+    metodo_pago_id = db.Column(db.BigInteger, db.ForeignKey('metodos_pago.id'), nullable=True)
+    monto_recibido = db.Column(db.Numeric(12, 2), nullable=True)  # Monto que entregó el cliente (efectivo)
+    vuelto = db.Column(db.Numeric(12, 2), nullable=True)  # Calculado: monto_recibido - total
+    referencia_pago = db.Column(db.String(100), nullable=True)  # Nro operación, últimos 4 dígitos tarjeta
+    fecha_pago = db.Column(db.DateTime, nullable=True)  # Cuándo se procesó el pago
+    
     # Relacion muchos a muchos con Productos a través de ProductoVenta
     productos = db.relationship("ProductoVenta")
     

@@ -6,6 +6,7 @@ from src.models.Producto_model import Producto, ProductoAtributo
 from src.models.Venta_model import Venta, ProductoVenta, TipoVenta
 from src.models.AtributoProducto_model import AtributoProducto
 from src.models.ValorAtributo_model import ValorAtributo
+from src.models.MetodoPago_model import MetodoPago
 from utils.db import db
 from utils.printer import get_printer
 from forms import MostradorForm
@@ -369,10 +370,12 @@ def detalle_pedido(pedido_id):
     try:
         pedido = Venta.query.get_or_404(pedido_id)
         items = ProductoVenta.query.filter_by(venta_id=pedido_id).all()
+        metodos_pago = MetodoPago.query.filter_by(estado=1).all()
         
         return render_template('ventas/mostrador/_partials/detalle_pedido.html',
                              pedido=pedido,
-                             items=items)
+                             items=items,
+                             metodos_pago=metodos_pago)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -438,8 +441,27 @@ def cobrar_pedido(pedido_id):
         # Obtener tipo de comprobante del formulario
         tipo_comprobante_id = request.form.get('tipo_comprobante', 1)
         
+        # Obtener datos de método de pago
+        metodo_pago_id = request.form.get('metodo_pago_id')
+        monto_recibido = request.form.get('monto_recibido')
+        referencia_pago = request.form.get('referencia_pago')
+        
         # Actualizar pago (independiente del estado_mostrador)
         pedido.comprobante_id = int(tipo_comprobante_id)
+        
+        # Guardar método de pago
+        if metodo_pago_id:
+            pedido.metodo_pago_id = int(metodo_pago_id)
+            pedido.fecha_pago = datetime.now()
+            
+            # Si es efectivo, guardar monto recibido y calcular vuelto
+            if monto_recibido:
+                pedido.monto_recibido = float(monto_recibido)
+                pedido.vuelto = float(monto_recibido) - float(pedido.total)
+            
+            # Si tiene referencia (tarjeta/transferencia)
+            if referencia_pago:
+                pedido.referencia_pago = referencia_pago
         
         # Generar número de comprobante
         from src.models.Comprobante_model import Comprobante

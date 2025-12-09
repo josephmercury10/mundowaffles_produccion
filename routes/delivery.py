@@ -10,6 +10,7 @@ from src.models.Venta_model import Venta
 from src.models.Venta_model import ProductoVenta
 from src.models.AtributoProducto_model import AtributoProducto
 from src.models.ValorAtributo_model import ValorAtributo
+from src.models.MetodoPago_model import MetodoPago
 from utils.db import db
 from utils.printer import get_printer
 from forms import DeliveryForm
@@ -425,6 +426,7 @@ def detalle_pedido(pedido_id):
 
         productos = ProductoVenta.query.filter_by(venta_id=pedido_id).all()
         cliente = Cliente.query.get(pedido.cliente_id)
+        metodos_pago = MetodoPago.query.filter_by(estado=1).all()
         
         # Parsear atributos_seleccionados si es string JSON
         for producto in productos:
@@ -443,7 +445,8 @@ def detalle_pedido(pedido_id):
                                productos=productos,
                                total_con_envio=total_con_envio,
                                costo_envio=costo_envio,
-                               cliente=cliente)
+                               cliente=cliente,
+                               metodos_pago=metodos_pago)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
@@ -556,10 +559,30 @@ def cobrar_pedido(pedido_id):
         
         # Obtener tipo de comprobante del formulario
         tipo_comprobante_id = request.form.get('tipo_comprobante_delivery', 1)
-        metodo_pago = request.form.get(f'metodo_pago_{pedido_id}', 'efectivo')
+        
+        # Obtener datos de método de pago
+        metodo_pago_id = request.form.get('metodo_pago_id')
+        monto_recibido = request.form.get('monto_recibido')
+        referencia_pago = request.form.get('referencia_pago')
         
         # Actualizar pedido - NO cambiar estado_delivery, solo marcar como pagado
         pedido.comprobante_id = int(tipo_comprobante_id)
+        
+        # Guardar método de pago
+        if metodo_pago_id:
+            pedido.metodo_pago_id = int(metodo_pago_id)
+            pedido.fecha_pago = datetime.now()
+            
+            # Si es efectivo, guardar monto recibido y calcular vuelto
+            if monto_recibido:
+                costo_envio = float(pedido.costo_envio or 0)
+                total_con_envio = float(pedido.total) + costo_envio
+                pedido.monto_recibido = float(monto_recibido)
+                pedido.vuelto = float(monto_recibido) - total_con_envio
+            
+            # Si tiene referencia (tarjeta/transferencia)
+            if referencia_pago:
+                pedido.referencia_pago = referencia_pago
         
         # Generar número de comprobante
         from src.models.Comprobante_model import Comprobante
