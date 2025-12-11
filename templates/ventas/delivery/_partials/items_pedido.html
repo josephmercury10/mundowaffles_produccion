@@ -168,3 +168,36 @@
         <span class="summary-value">${{ total_con_envio|format_price }}</span>
     </div>
 </div>
+
+<!-- Modal de confirmación para eliminación total -->
+<div class="modal fade" id="modalConfirmarEliminarPedidoDelivery" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEliminarLabel">⚠️ Confirmar Cancelación de Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger"><strong>Está a punto de eliminar todos los productos del pedido.</strong></p>
+                <p>Esta acción cancelará el pedido completo y no se podrá deshacer.</p>
+                <p>¿Está seguro de que desea continuar?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger"
+                        hx-post="/delivery/pedido/{{ pedido.id }}/confirmar_eliminacion_total"
+                        data-bs-dismiss="modal">
+                    Sí, cancelar pedido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Escuchar el evento HTMX para mostrar el modal
+    document.body.addEventListener('mostrar-modal-eliminacion-total', function() {
+        const modal = new bootstrap.Modal(document.getElementById('modalConfirmarEliminarPedidoDelivery'));
+        modal.show();
+    });
+</script>

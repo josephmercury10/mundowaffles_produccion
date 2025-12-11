@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, session, flash, make_response
+from flask import Blueprint, request, jsonify, render_template, session, flash, make_response, url_for
 from datetime import datetime
 import json
 import uuid
@@ -1001,6 +1001,16 @@ def confirmar_eliminacion(pedido_id):
         if not items_eliminar:
             return _render_items_pedido(pedido_id)
         
+        # Verificar si se eliminarán todos los productos
+        productos_totales = ProductoVenta.query.filter_by(venta_id=pedido_id).count()
+        
+        if len(items_eliminar) >= productos_totales:
+            # Se eliminarán todos los productos - mostrar modal de confirmación
+            response = make_response('', 200)
+            response.headers['HX-Trigger'] = 'mostrar-modal-eliminacion-total'
+            response.headers['HX-Reswap'] = 'none'
+            return response
+        
         productos_eliminados = []
         
         for producto_id in items_eliminar:
@@ -1039,6 +1049,37 @@ def confirmar_eliminacion(pedido_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
     
+
+@delivery_bp.route('/pedido/<int:pedido_id>/confirmar_eliminacion_total', methods=['POST'])
+def confirmar_eliminacion_total(pedido_id):
+    """Elimina todos los productos y cancela el pedido de delivery"""
+    try:
+        pedido = Venta.query.get(pedido_id)
+        if not pedido or pedido.estado_delivery != 1:
+            return jsonify({'error': 'Pedido no válido'}), 403
+        
+        # Eliminar todos los productos del pedido
+        ProductoVenta.query.filter_by(venta_id=pedido_id).delete()
+        
+        # Actualizar estado y total del pedido
+        pedido.estado_delivery = 0
+        pedido.total = 0
+        
+        db.session.commit()
+        
+        # Limpiar sesión
+        session.pop(f'eliminar_{pedido_id}', None)
+        session.pop(f'carrito_temp_{pedido_id}', None)
+        
+        # Redirigir a la lista de pedidos
+        response = make_response('', 200)
+        response.headers['HX-Redirect'] = url_for('delivery.getDeliveries')
+        return response
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 @delivery_bp.route('/imprimir_pedido/<int:pedido_id>', methods=['POST'])
 def imprimir_pedido(pedido_id):
