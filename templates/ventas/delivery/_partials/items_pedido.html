@@ -22,7 +22,7 @@
         </div>
         <div class="item-actions">
             <p class="item-price">${{ (producto.cantidad * producto.precio_venta)|format_price }}</p>
-            {% if pedido.estado_delivery == 1 and producto.id not in items_pendientes_eliminar %}
+            {% if pedido.estado_delivery == 1 and pedido.metodo_pago_id == None and producto.id not in items_pendientes_eliminar  %}
             <!-- Botón marcar para eliminar -->
             <button class="btn btn-sm btn-outline-danger"
                     hx-post="/delivery/pedido/{{ pedido.id }}/marcar_eliminar/{{ producto.id }}"
@@ -73,10 +73,10 @@
     </div>
     {% endif %}
 
-    <!-- Sección para agregar nuevos productos (solo si estado_delivery = 1) -->
-    {% if pedido.estado_delivery == 1 %}
+    <!-- Sección para agregar nuevos productos (solo si estado_delivery = 1 y no existe método de pago) -->
+    {% if pedido.estado_delivery == 1 and pedido.metodo_pago_id == None %}
     <div class="add-product-section mt-3">
-        <details class="productos-acordeon" id="acordeon-agregar">
+        <details class="productos-acordeon" id="acordeon-agregar" ontoggle="if(this.open) htmx.trigger('#productos-disponibles-delivery-{{ pedido.id }}', 'fetch')">
             <summary class="acordeon-header">
                 <svg class="icon text-primary" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -90,8 +90,9 @@
             </summary>
             <div class="productos-grid-container">
                 <!-- Lista de productos disponibles -->
-                <div hx-get="/delivery/pedido/{{ pedido.id }}/productos_disponibles"
-                     hx-trigger="revealed"
+                <div id="productos-disponibles-delivery-{{ pedido.id }}"
+                     hx-get="/delivery/pedido/{{ pedido.id }}/productos_disponibles"
+                     hx-trigger="fetch"
                      hx-swap="innerHTML">
                     <div class="loading-productos">
                         <div class="spinner"></div>

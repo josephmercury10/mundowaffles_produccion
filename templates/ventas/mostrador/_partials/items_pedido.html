@@ -86,7 +86,7 @@
     <!-- Sección para agregar nuevos productos (solo si estado_mostrador = 1 y no está pagado) -->
     {% if pedido.estado_mostrador == 1 and not pedido.comprobante_id %}
     <div class="add-product-section mt-3">
-        <details class="productos-acordeon" id="acordeon-agregar">
+        <details class="productos-acordeon" id="acordeon-agregar" ontoggle="if(this.open) htmx.trigger('#productos-disponibles-mostrador-{{ pedido.id }}', 'fetch')">
             <summary class="acordeon-header">
                 <svg class="icon text-primary" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -100,8 +100,9 @@
             </summary>
             <div class="productos-grid-container">
                 <!-- Lista de productos disponibles -->
-                <div hx-get="/mostrador/pedido/{{ pedido.id }}/productos_disponibles"
-                     hx-trigger="revealed"
+                <div id="productos-disponibles-mostrador-{{ pedido.id }}"
+                     hx-get="/mostrador/pedido/{{ pedido.id }}/productos_disponibles"
+                     hx-trigger="fetch"
                      hx-swap="innerHTML">
                     <div class="loading-productos text-center py-3">
                         <div class="spinner"></div>

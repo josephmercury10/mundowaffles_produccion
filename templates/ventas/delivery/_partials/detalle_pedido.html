@@ -137,7 +137,7 @@
                         </svg>
                         Items del Pedido
                     </h2>
-                    {% if pedido.estado_delivery == 1 %}
+                    {% if pedido.estado_delivery == 1 and pedido.metodo_pago_id == None %}
                     <span class="badge-editable">Editable</span>
                     {% endif %}
                 </div>
