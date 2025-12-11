@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, session, flash, make_response
+from flask import Blueprint, request, jsonify, render_template, session, flash, make_response, url_for
 from datetime import datetime
 from src.models.Persona_model import Persona
 from src.models.Cliente_model import Cliente
@@ -766,6 +766,21 @@ def confirmar_eliminacion(pedido_id):
         
         if not items_eliminar:
             return _render_items_pedido_mostrador(pedido_id)
+
+        # Si se eliminarán todos los productos, pedir confirmación al usuario via htmx
+        productos_totales = ProductoVenta.query.filter_by(venta_id=pedido_id).count()
+        if len(items_eliminar) >= productos_totales:
+            # No modificamos el DOM; solo disparamos el evento HTMX para abrir el modal
+            headers = {
+                'HX-Trigger': json.dumps({
+                    "mostrar-modal-eliminacion-total": {
+                        "mensaje": "¿Está seguro? Al eliminar todos los productos, el pedido será cancelado.",
+                        "pedido_id": pedido_id
+                    }
+                }),
+                'HX-Reswap': 'none'
+            }
+            return ('', 200, headers)
         
         productos_eliminados = []
         
@@ -801,6 +816,40 @@ def confirmar_eliminacion(pedido_id):
         response.headers['HX-Trigger'] = 'refresh-resumen'
         return response
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@mostrador_bp.route('/pedido/<int:pedido_id>/confirmar_eliminacion_total', methods=['POST'])
+def confirmar_eliminacion_total(pedido_id):
+    """Elimina todos los productos y cancela el pedido"""
+    try:
+        pedido = Venta.query.get(pedido_id)
+        if not pedido or pedido.estado_mostrador != 1 or pedido.comprobante_id:
+            return jsonify({'error': 'Pedido no válido'}), 403
+
+        # Eliminar todos los productos del pedido
+        productos = ProductoVenta.query.filter_by(venta_id=pedido_id).all()
+        for prod in productos:
+            db.session.delete(prod)
+
+        # Cancelar pedido (estado 0) y total 0
+        pedido.estado_mostrador = 0
+        pedido.total = 0
+
+        db.session.commit()
+
+        # Limpiar lista de eliminación
+        eliminar_key = f'eliminar_mostrador_{pedido_id}'
+        session.pop(eliminar_key, None)
+
+        # Redirigir al listado de mostrador para evitar estados intermedios
+        headers = {
+            'HX-Redirect': url_for('mostrador.index')
+        }
+        return ('', 200, headers)
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

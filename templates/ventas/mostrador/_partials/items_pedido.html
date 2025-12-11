@@ -104,7 +104,7 @@
                      hx-trigger="revealed"
                      hx-swap="innerHTML">
                     <div class="loading-productos text-center py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <div class="spinner"></div>
                         <span class="ms-2">Cargando productos...</span>
                     </div>
                 </div>
@@ -178,3 +178,43 @@
         <span class="summary-value">{{ productos|length }} producto(s)</span>
     </div>
 </div>
+
+<!-- Modal confirmación eliminación total -->
+<div class="modal fade" id="modalConfirmarEliminarPedido" tabindex="-1" aria-labelledby="modalConfirmarEliminarPedidoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalConfirmarEliminarPedidoLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalEliminarMensaje">
+                ¿Está seguro? Al eliminar todos los productos, el pedido será cancelado.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger"
+                                hx-post="/mostrador/pedido/{{ pedido.id }}/confirmar_eliminacion_total"
+                                hx-target="#items-container"
+                                hx-swap="innerHTML"
+                                data-bs-dismiss="modal">
+                        Sí, eliminar pedido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Escucha evento HTMX para mostrar modal de confirmación total
+document.body.addEventListener('mostrar-modal-eliminacion-total', function(evt) {
+        const data = evt.detail && evt.detail.value ? evt.detail.value : {};
+        const msg = data.mensaje || '¿Está seguro? Al eliminar todos los productos, el pedido será cancelado.';
+        const modalBody = document.getElementById('modalEliminarMensaje');
+        if (modalBody) modalBody.textContent = msg;
+        const modalEl = document.getElementById('modalConfirmarEliminarPedido');
+        if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+        }
+});
+</script>

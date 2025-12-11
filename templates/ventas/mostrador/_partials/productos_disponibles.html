@@ -31,58 +31,58 @@
 </div>
 
 <script>
-function filtrarProductosAgregarMostrador(texto) {
-    const filtro = texto.toLowerCase();
-    document.querySelectorAll('.producto-agregar-item-mostrador').forEach(item => {
-        const nombre = item.dataset.nombre;
-        item.style.display = nombre.includes(filtro) ? '' : 'none';
-    });
-}
+    function filtrarProductosAgregarMostrador(texto) {
+        const filtro = texto.toLowerCase();
+        document.querySelectorAll('.producto-agregar-item-mostrador').forEach(item => {
+            const nombre = item.dataset.nombre;
+            item.style.display = nombre.includes(filtro) ? '' : 'none';
+        });
+    }
 
-async function agregarProductoDetalleMostrador(productoId, nombre, precio, pedidoId) {
-    try {
-        // Verificar si el producto tiene atributos
-        const response = await fetch(`/mostrador/tiene_atributos/${productoId}`);
-        const data = await response.json();
+    async function agregarProductoDetalleMostrador(productoId, nombre, precio, pedidoId) {
+        try {
+            // Verificar si el producto tiene atributos
+            const response = await fetch(`/mostrador/tiene_atributos/${productoId}`);
+            const data = await response.json();
         
-        if (data.tiene_atributos) {
-            // Mostrar modal de extras con modo detalle activado
-            // La función global del modal maneja esto
-            abrirModalExtrasMostrador(productoId, nombre, precio, true, pedidoId);
-        } else {
-            // Agregar directamente sin extras
+            if (data.tiene_atributos) {
+                // Mostrar modal de extras con modo detalle activado
+                // La función global del modal maneja esto
+                abrirModalExtrasMostrador(productoId, nombre, precio, true, pedidoId);
+            } else {
+                // Agregar directamente sin extras
+                agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, [], pedidoId);
+            }
+        }catch (error) {
+            console.error('Error verificando atributos:', error);
+            // En caso de error, agregar sin extras
             agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, [], pedidoId);
         }
-    } catch (error) {
-        console.error('Error verificando atributos:', error);
-        // En caso de error, agregar sin extras
-        agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, [], pedidoId);
     }
-}
 
-function agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, extras, pedidoId) {
-    // Preparar datos para enviar
-    const formData = new FormData();
-    formData.append('producto_id', productoId);
-    formData.append('nombre', nombre);
-    formData.append('precio', precio);
-    formData.append('extras', JSON.stringify(extras));
+    function agregarAlCarritoTemporalMostradorDirecto(productoId, nombre, precio, extras, pedidoId) {
+        // Preparar datos para enviar
+        const formData = new FormData();
+        formData.append('producto_id', productoId);
+        formData.append('nombre', nombre);
+        formData.append('precio', precio);
+        formData.append('extras', JSON.stringify(extras));
     
-    // Enviar al carrito temporal
-    fetch(`/mostrador/pedido/${pedidoId}/carrito_temp/agregar`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.text())
-    .then(html => {
-        document.getElementById('items-container').innerHTML = html;
-        // Procesar HTMX en el nuevo contenido
-        if (typeof htmx !== 'undefined') {
-            htmx.process(document.getElementById('items-container'));
-        }
-    })
-    .catch(error => {
-        console.error('Error agregando al carrito temporal:', error);
-    });
-}
+        // Enviar al carrito temporal
+        fetch(`/mostrador/pedido/${pedidoId}/carrito_temp/agregar`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('items-container').innerHTML = html;
+            // Procesar HTMX en el nuevo contenido
+            if (typeof htmx !== 'undefined') {
+                htmx.process(document.getElementById('items-container'));
+            }
+        })
+        .catch(error => {
+            console.error('Error agregando al carrito temporal:', error);
+        });
+    }
 </script>
