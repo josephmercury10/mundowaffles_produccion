@@ -20,4 +20,45 @@
         <span class="summary-label">Total:</span>
         <span class="summary-value">${{ (pedido.total + (pedido.costo_envio or 0))|format_price }}</span>
     </div>
+
+    {% if pedido.metodo_pago_id %}
+    <div class="separator"></div>
+    
+    <div class="summary-row">
+        <span class="summary-label">Pagado con:</span>
+        <span class="summary-value text-success">
+            <strong>{{ pedido.metodo_pago.nombre }}</strong>
+        </span>
+    </div>
+
+    {% if pedido.monto_recibido %}
+    <div class="summary-row">
+        <span class="summary-label">Monto Recibido:</span>
+        <span class="summary-value">${{ pedido.monto_recibido|format_price }}</span>
+    </div>
+    {% endif %}
+
+    {% if pedido.vuelto and pedido.vuelto > 0 %}
+    <div class="summary-row">
+        <span class="summary-label">Vuelto:</span>
+        <span class="summary-value text-info">
+            <strong>${{ pedido.vuelto|format_price }}</strong>
+        </span>
+    </div>
+    {% endif %}
+
+    {% if pedido.referencia_pago %}
+    <div class="summary-row">
+        <span class="summary-label">Referencia (ultimos 4 digitos de la boleta):</span>
+        <span class="summary-value">{{ pedido.referencia_pago }}</span>
+    </div>
+    {% endif %}
+
+    {% if pedido.fecha_pago %}
+    <div class="summary-row">
+        <span class="summary-label">Fecha de Pago:</span>
+        <span class="summary-value">{{ pedido.fecha_pago.strftime('%d/%m/%Y %H:%M') }}</span>
+    </div>
+    {% endif %}
+    {% endif %}
 </div>
