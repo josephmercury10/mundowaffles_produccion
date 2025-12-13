@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block full_content %}
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Reportes de Ventas</h4>
+        <span class="text-muted">Hora local del servidor</span>
+    </div>
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        {{ form.hidden_tag() }}
+        <div class="col-12 col-md-2">
+            {{ form.rango.label(class="form-label") }}
+            {{ form.rango(class="form-select") }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ form.fecha_desde.label(class="form-label") }}
+            {{ form.fecha_desde(class="form-control", placeholder="YYYY-MM-DD") }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ form.fecha_hasta.label(class="form-label") }}
+            {{ form.fecha_hasta(class="form-control", placeholder="YYYY-MM-DD") }}
+        </div>
+        <div class="col-12 col-md-2">
+            {{ form.metodo_pago.label(class="form-label") }}
+            {{ form.metodo_pago(class="form-select") }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ form.canal.label(class="form-label") }}
+            {{ form.canal(class="form-select") }}
+        </div>
+        <div class="col-6 col-md-1">
+            {{ form.estado.label(class="form-label") }}
+            {{ form.estado(class="form-select") }}
+        </div>
+        <div class="col-12 col-md-1 text-end">
+            {{ form.submit(class="btn btn-primary w-100") }}
+        </div>
+    </form>
+
+    <div class="row g-3">
+        <div class="col-12 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Total vendido</p>
+                    <h4 class="mb-0">${{ total_monto|format_price }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Cantidad de ventas</p>
+                    <h4 class="mb-0">{{ total_ventas }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Ticket promedio</p>
+                    <h4 class="mb-0">${{ ticket_promedio|format_price }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Métodos de pago</p>
+                    <h4 class="mb-0">{{ totales_metodo|length }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Ventas</strong>
+            <small class="text-muted">Mostrando hasta 200 registros recientes</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Canal</th>
+                        <th>Cliente</th>
+                        <th>Método de pago</th>
+                        <th>Estado</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for venta in ventas %}
+                    {% set canal = 'Mostrador' if venta.tipoventa_id == 1 else 'Delivery' if venta.tipoventa_id == 2 else 'N/D' %}
+                    <tr>
+                        <td>{{ venta.id }}</td>
+                        <td>{{ venta.fecha_hora.strftime('%Y-%m-%d %H:%M') if venta.fecha_hora else '' }}</td>
+                        <td>{{ canal }}</td>
+                        <td>{{ venta.cliente.razon_social if venta.cliente else 'Sin cliente' }}</td>
+                        <td>{{ venta.metodo_pago.nombre if venta.metodo_pago else 'Sin método' }}</td>
+                        <td>
+                            {% set es_activa, estado_text = es_venta_activa(venta) %}
+                            {% if estado_text == 'Anulada' %}
+                                <span class="badge bg-secondary">{{ estado_text }}</span>
+                            {% elif es_activa %}
+                                <span class="badge bg-success">{{ estado_text }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ estado_text }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">${{ venta.total|format_price }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <strong>Totales por método de pago</strong>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Método</th>
+                        <th>Cantidad</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in totales_metodo %}
+                    <tr>
+                        <td>{{ fila.metodo }}</td>
+                        <td>{{ fila.cantidad }}</td>
+                        <td class="text-end">${{ fila.monto|format_price }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">Sin datos para agrupar</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

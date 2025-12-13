@@ -41,6 +41,22 @@ class MostradorForm(FlaskForm):
     cliente = StringField('Cliente:', validators=[Optional(), length(max=80)])
     comentarios = TextAreaField('Notas:', validators=[Optional(), length(max=200)])
     submit = SubmitField('Continuar')
+
+
+class ReporteVentasForm(FlaskForm):
+    rango = SelectField('Rango:', choices=[
+        ('hoy', 'Hoy'),
+        ('semana', 'Esta semana'),
+        ('mes', 'Este mes'),
+        ('historico', 'Histórico'),
+        ('personalizado', 'Rango personalizado')
+    ], default='hoy')
+    fecha_desde = DateField('Desde:', format='%Y-%m-%d', validators=[Optional()])
+    fecha_hasta = DateField('Hasta:', format='%Y-%m-%d', validators=[Optional()])
+    metodo_pago = SelectField('Método de pago:', choices=[('', 'Todos')], validators=[Optional()])
+    canal = SelectField('Canal:', choices=[('', 'Todos'), ('mostrador', 'Mostrador'), ('delivery', 'Delivery')], validators=[Optional()])
+    estado = SelectField('Estado:', choices=[('', 'Todos'), ('1', 'Activo'), ('0', 'Inactivo')], validators=[Optional()])
+    submit = SubmitField('Filtrar')
     
 class ProductoForm(FlaskForm):
     codigo = StringField('Código:', validators=[DataRequired(), length(min=1, max=50)])

@@ -20,6 +20,7 @@ from routes.printers import printers_bp
 from routes.mostrador import mostrador_bp
 from routes.api_print import api_print_bp
 from routes.atributos import atributos_bp
+from routes.reportes import reportes_bp
 
 
 app = Flask(__name__)
@@ -81,6 +82,7 @@ app.register_blueprint(ventas_bp)
 app.register_blueprint(pruebas_bp)
 app.register_blueprint(delivery_bp)
 app.register_blueprint(atributos_bp)
+app.register_blueprint(reportes_bp)
 
 # Registrar blueprints de impresoras (ahora funciona en ambas plataformas)
 # - Windows: usa win32print directo
