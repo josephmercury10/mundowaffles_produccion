@@ -44,15 +44,69 @@
 }
 
 .delivery-section {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border-top: 4px solid #666;
+}
+
+.delivery-section:nth-child(1) {
+  border-top-color: #dc3545;
+}
+
+.delivery-section:nth-child(2) {
+  border-top-color: #ffc107;
+}
+
+.delivery-section:nth-child(3) {
+  border-top-color: #28a745;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 0;
   cursor: pointer;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.section-header.pendientes {
+  color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.section-header.pendientes h3 {
+  color: #dc3545;
+}
+
+.section-header.enviados {
+  color: #ffc107;
+  background-color: #fffbf0;
+}
+
+.section-header.enviados h3 {
+  color: #ff9800;
+}
+
+.section-header.entregados {
+  color: #28a745;
+  background-color: #f0fdf4;
+}
+
+.section-header.entregados h3 {
+  color: #28a745;
 }
 
 .section-toggle {
@@ -94,44 +148,228 @@
   background: #4a90e2;
 }
 
-.section-header.enviados {
-  color: #f4c430;
+.section-count {
+  background: #666;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: auto;
 }
 
-.section-header.enviados .section-count {
-  background: #f4c430;
+/* Estilos mejorados para tablas */
+.delivery-section .table {
+  margin-bottom: 0;
+  border-collapse: collapse;
 }
 
-.section-header.entregados {
-  color: #28a745;
+.delivery-section .table thead {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 2px solid #e9ecef;
 }
 
-.section-header.entregados .section-count {
-  background: #28a745;
+.delivery-section .table thead th {
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #495057;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
 }
 
-.section-header.pagados {
-  color: #17a2b8;
+.delivery-section .table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+  font-size: 14px;
 }
 
-.section-header.pagados .section-count {
-  background: #17a2b8;
+.delivery-section .table tbody tr {
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.section-header.pendientes {
+.delivery-section .table tbody tr:hover {
+  background-color: #f8f9fa;
+  box-shadow: inset 0 0 0 1px #e9ecef;
+}
+
+/* Tabla Pendientes (Rojo) */
+#pendientes-table thead {
+  background-color: #fff5f5 !important;
+}
+
+#pendientes-table thead th {
   color: #dc3545;
+  border-bottom: 2px solid #dc3545 !important;
 }
 
-.section-header.pendientes .section-count {
-  background: #dc3545;
+#pendientes-table tbody tr:hover {
+  background-color: #fff5f5;
 }
 
-.orders-table {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 16px;
+#pendientes-table tbody tr.table-success {
+  background-color: #f0fdf4;
+}
+
+/* Tabla Enviados (Amarillo) */
+#enviados-table thead {
+  background-color: #fffbf0 !important;
+}
+
+#enviados-table thead th {
+  color: #ff9800;
+  border-bottom: 2px solid #ffc107 !important;
+}
+
+#enviados-table tbody tr:hover {
+  background-color: #fffbf0;
+}
+
+#enviados-table tbody tr.table-success {
+  background-color: #f0fdf4;
+}
+
+/* Tabla Entregados (Verde) */
+#entregados-table thead {
+  background-color: #f0fdf4 !important;
+}
+
+#entregados-table thead th {
+  color: #28a745;
+  border-bottom: 2px solid #28a745 !important;
+}
+
+#entregados-table tbody tr:hover {
+  background-color: #f0fdf4;
+}
+
+#entregados-table tbody tr.table-success {
+  background-color: #f0fdf4;
+}
+
+/* Estilos para botones en tabla */
+.delivery-section .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.delivery-section .btn-warning {
+  background-color: #ffc107;
+  color: #000;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+}
+
+.delivery-section .btn-warning:hover {
+  background-color: #ffb300;
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+  transform: translateY(-1px);
+}
+
+.delivery-section .btn-success {
+  background-color: #28a745;
+  color: white;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.delivery-section .btn-success:hover {
+  background-color: #218838;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  transform: translateY(-1px);
+}
+
+.delivery-section .btn-info {
+  background-color: #17a2b8;
+  color: white;
+  box-shadow: 0 2px 4px rgba(23, 162, 184, 0.2);
+}
+
+.delivery-section .btn-info:hover {
+  background-color: #138496;
+  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Badges mejorados */
+.badge {
+  padding: 4px 8px;
+  font-weight: 600;
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+.badge.bg-warning {
+  background-color: #fff3cd !important;
+  color: #856404 !important;
+  border: 1px solid #ffeaa7;
+}
+
+.badge.bg-success {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  border: 1px solid #c3e6cb;
+}
+
+.badge.bg-danger {
+  background-color: #f8d7da !important;
+  color: #721c24 !important;
+  border: 1px solid #f5c6cb;
+}
+
+/* Animaciones suaves para tablas */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delivery-section .table tbody tr {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Estilo para cuando hay muchas filas */
+.delivery-section .table tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Mejora de contraste para campos importantes */
+.delivery-section .table tbody td:nth-child(1),
+.delivery-section .table tbody td:nth-child(8) {
+  font-weight: 600;
+}
+
+/* Respuesta visual en botones */
+.delivery-section .btn-sm:active {
+  transform: translateY(1px);
+}
+
+/* Separadores visuales mejorados */
+.delivery-section {
+  position: relative;
+}
+
+.delivery-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #e9ecef 50%, transparent 100%);
 }
 
 .table-header {
@@ -295,25 +533,43 @@
 }
 
 .nav-tabs {
-  background: #666;
+  background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
   color: white;
   padding: 0;
   display: flex;
   align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-bottom: 2px solid #ff6b35;
 }
 
 .nav-tab {
   padding: 16px 24px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
   font-size: 15px;
+  font-weight: 500;
+  position: relative;
+  border-bottom: 3px solid transparent;
 }
 
 .nav-tab:hover {
   background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .nav-tab.active {
+  background: #ff6b35;
+  border-bottom-color: #ff6b35;
+  box-shadow: inset 0 -3px 0 #ff6b35;
+}
+
+.nav-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 3px;
   background: #ff6b35;
 }
 

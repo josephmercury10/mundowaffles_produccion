@@ -29,7 +29,8 @@
             <!-- Tabla de Pendientes -->
             <div class="delivery-section">
                 <div class="section-header pendientes">
-                    <h3>En Preparación</h3>
+                    <h3>🔴 En Preparación</h3>
+                    <span class="section-count">Pendientes</span>
                 </div>
                 <table id="pendientes-table" class="table table-hover" 
                        hx-get="/delivery/pedidos_estado/1" 
@@ -58,7 +59,8 @@
             <!-- Tabla de Enviados -->
             <div class="delivery-section">
                 <div class="section-header enviados">
-                    <h3>Enviados</h3>
+                    <h3>🚚 Enviados</h3>
+                    <span class="section-count">En ruta</span>
                 </div>
                 <table id="enviados-table" class="table table-hover" 
                        hx-get="/delivery/pedidos_estado/2" 
@@ -87,7 +89,8 @@
             <!-- Tabla de Entregados -->
             <div class="delivery-section">
                 <div class="section-header entregados">
-                    <h3>Entregados</h3>
+                    <h3>✅ Entregados</h3>
+                    <span class="section-count">Completados</span>
                 </div>
                 <table id="entregados-table" class="table table-hover" 
                        hx-get="/delivery/pedidos_estado/3" 

@@ -2,63 +2,77 @@
 <tr hx-get="/delivery/detalle_pedido/{{ venta.id }}" 
     hx-target="#right_panel" 
     hx-swap="innerHTML" 
-    style="cursor:pointer"
+    style="cursor:pointer; transition: all 0.2s ease;"
     class="{{ 'table-success' if venta.comprobante_id else '' }}">
-    <td>
-        {{ venta.id }}
+    <td style="font-weight: 600; color: #212529;">
+        <strong>#{{ venta.id }}</strong>
         {% if venta.comprobante_id %}
-            <span class="badge bg-success" title="Pagado">💰</span>
+            <span class="badge bg-success" title="Pagado" style="margin-left: 6px;">💰</span>
         {% endif %}
     </td>
-    <td>{{ venta.fecha_hora.strftime('%H:%M') if venta.fecha_hora }}</td>
-    <td>{% if venta.cliente and venta.cliente.persona %}
-            {{ venta.cliente.persona.direccion or venta.cliente.persona.direccion }}
+    <td style="font-size: 13px;"><strong>{{ venta.fecha_hora.strftime('%H:%M') if venta.fecha_hora }}</strong></td>
+    <td style="font-size: 13px;">{% if venta.cliente and venta.cliente.persona %}
+            <strong>{{ venta.cliente.persona.direccion or 'Sin dirección' }}</strong>
         {% else %}
-            Sin Dirección
+            <strong><em class="text-muted">Sin Dirección</em></strong>
         {% endif %}
     </td>
-    <td>{% if venta.cliente and venta.cliente.persona %}
-            {{ venta.cliente.persona.telefono or venta.cliente.persona.telefono }}
+    <td style="font-size: 13px;">{% if venta.cliente and venta.cliente.persona %}
+            <strong>{{ venta.cliente.persona.telefono or '-' }}</strong>
         {% else %}
-            Sin teléfono
+            <strong><em class="text-muted">Sin teléfono</em></strong>
         {% endif %}
     </td>
-    <td>
+    <td style="font-size: 13px;">
         {% if venta.cliente and venta.cliente.persona %}
-            {{ venta.cliente.persona.razon_social or venta.cliente.persona.razon_social }}
+            <strong>{{ venta.cliente.persona.razon_social or 'Cliente' }}</strong>
         {% else %}
-            Sin cliente
+            <strong><em class="text-muted">Sin cliente</em></strong>
         {% endif %}
     </td>
-    <td>{{ venta.repartidor.persona.razon_social if venta.repartidor else 'Sin repartidor' }}</td>
-    <td>{{ venta.fecha_hora|timeago }}</td>
-    <td>${{ venta.total|format_price }}</td>
-    <td>
+    <td style="font-size: 13px;">
+        {% if venta.repartidor %}
+            <strong>{{ venta.repartidor.persona.razon_social }}</strong>
+        {% else %}
+            <strong><em class="text-muted">Sin repartidor</em></strong>
+        {% endif %}
+    </td>
+    <td style="font-size: 13px; font-weight: 500; color: #6c757d;"><strong>{{ venta.fecha_hora|timeago }}</strong></td>
+    <td style="font-weight: 600; color: #28a745; font-size: 14px;"><strong>${{ venta.total|format_price }}</strong></td>
+    <td style="text-align: center;">
         {% if venta.estado_delivery == 1 %}
             {% if venta.comprobante_id %}
                 <!-- Ya pagó, puede enviar -->
                 <button class="btn btn-sm btn-warning"
                         hx-post="/delivery/cambiar_estado/{{ venta.id }}/2"
                         hx-trigger="click"
-                        onclick="event.stopPropagation()">
+                        onclick="event.stopPropagation()"
+                        title="Enviar pedido a repartidor">
                     🚚 Enviar
                 </button>
             {% else %}
                 <!-- No ha pagado -->
-                <span class="badge bg-warning text-dark">⏳ Sin pagar</span>
+                <span class="badge bg-warning text-dark" style="padding: 6px 10px; font-size: 11px;">⏳ Sin pagar</span>
             {% endif %}
         {% elif venta.estado_delivery == 2 %}
             <button class="btn btn-sm btn-success"
                     hx-post="/delivery/cambiar_estado/{{ venta.id }}/3"
                     hx-trigger="click"
-                    onclick="event.stopPropagation()">
+                    onclick="event.stopPropagation()"
+                    title="Marcar como entregado">
                 ✅ Entregar
             </button>
         {% elif venta.estado_delivery == 3 %}
-            <span class="badge bg-success">✅ Entregado</span>
+            <span class="badge bg-success" style="padding: 6px 10px; font-size: 11px;">✅ Entregado</span>
         {% else %}
-            <span class="badge bg-secondary">{{ venta.estado_delivery }}</span>
+            <span class="badge bg-secondary" style="padding: 6px 10px; font-size: 11px;">{{ venta.estado_delivery }}</span>
         {% endif %}
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="10" class="text-center text-muted py-4">
+        No hay pedidos en este estado
     </td>
 </tr>
 {% endfor %}

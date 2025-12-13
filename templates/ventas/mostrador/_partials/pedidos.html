@@ -3,9 +3,9 @@
     hx-target="#right_panel" 
     hx-swap="innerHTML" 
     style="cursor:pointer">
-    <td>{{ venta.id }}</td>
+    <td><strong>#{{ venta.id }}</strong></td>
     <td>{{ venta.fecha_hora.strftime('%H:%M') if venta.fecha_hora else '-' }}</td>
-    <td>{{ venta.comentarios if venta.comentarios else 'Cliente Mostrador' }}</td>
+    <td><strong>{{ venta.comentarios if venta.comentarios else 'Cliente Mostrador' }}</strong></td>
     <td>
         {% set item_count = venta.productos|length if venta.productos else 0 %}
         {{ item_count }} item{{ 's' if item_count != 1 else '' }}
@@ -23,7 +23,7 @@
             <span class="badge bg-warning text-dark">Pendiente</span>
         {% endif %}
     </td>
-    <td>${{ venta.total|format_price }}</td>
+    <td><strong>${{ venta.total|format_price }}</strong></td>
     <td>
         {% if not venta.comprobante_id %}
             <button class="btn btn-sm btn-primary"
