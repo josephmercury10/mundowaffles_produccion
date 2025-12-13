@@ -218,4 +218,29 @@ document.body.addEventListener('mostrar-modal-eliminacion-total', function(evt) 
                 modal.show();
         }
 });
+
+// Limpiar backdrops cuando el modal se cierra
+const modalEl = document.getElementById('modalConfirmarEliminarPedido');
+if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function() {
+                // Eliminar todos los backdrops huérfanos
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                // Restaurar scroll del body
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+        });
+}
+
+// Asegurar que el botón cancelar cierre correctamente el modal
+const btnCancelar = modalEl?.querySelector('.btn-secondary[data-bs-dismiss="modal"]');
+if (btnCancelar) {
+        btnCancelar.addEventListener('click', function() {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) {
+                        modal.hide();
+                }
+        });
+}
 </script>
