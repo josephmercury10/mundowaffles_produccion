@@ -582,7 +582,9 @@ def carrito_temp_agregar(pedido_id):
         
         producto_id = request.form.get('producto_id')
         nombre = request.form.get('nombre')
-        precio = float(request.form.get('precio', 0))
+        precio_base = float(request.form.get('precio_base', 0))
+        # El precio puede venir como total, pero usamos precio_base para calcular correctamente
+        precio_recibido = float(request.form.get('precio', 0))
         extras_json = request.form.get('extras', '[]')
         
         try:
@@ -590,9 +592,9 @@ def carrito_temp_agregar(pedido_id):
         except:
             extras = []
         
-        # Calcular precio total con extras
+        # Calcular precio total con extras usando precio_base
         precio_extras = sum(float(e.get('precio_adicional', 0)) for e in extras)
-        precio_total = precio + precio_extras
+        precio_total = precio_base + precio_extras
         
         # Obtener carrito temporal de la sesión
         carrito_key = f'carrito_temp_mostrador_{pedido_id}'
@@ -604,7 +606,7 @@ def carrito_temp_agregar(pedido_id):
         carrito[item_key] = {
             'id': producto_id,
             'nombre': nombre,
-            'precio': precio,
+            'precio': precio_base,
             'precio_total': precio_total,
             'cantidad': 1,
             'extras': extras
