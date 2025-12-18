@@ -38,7 +38,7 @@ class DeliveryForm(FlaskForm):
     
 
 class MostradorForm(FlaskForm):
-    cliente = StringField('Cliente:', validators=[Optional(), length(max=80)])
+    cliente = StringField('Cliente:', validators=[DataRequired(), length(max=80)])
     comentarios = TextAreaField('Notas:', validators=[Optional(), length(max=200)])
     submit = SubmitField('Continuar')
 
