@@ -1,5 +1,5 @@
 <!-- Modal para seleccionar extras de un producto - MOSTRADOR -->
-<div class="modal fade" id="extrasModalMostrador" tabindex="-1" aria-labelledby="extrasModalMostradorLabel">
+<div class="modal fade" id="extrasModalMostrador" tabindex="-1" aria-labelledby="extrasModalMostradorLabel" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
@@ -264,5 +264,25 @@ document.getElementById('btn-confirmar-extras-mostrador').addEventListener('clic
         console.error('Error:', error);
         alert('Error al agregar al carrito');
     });
+});
+
+// Asegurar que el modal esté oculto al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const modalElement = document.getElementById('extrasModalMostrador');
+    if (modalElement) {
+        // Forzar que el modal esté oculto
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        modalElement.setAttribute('aria-hidden', 'true');
+        modalElement.removeAttribute('aria-modal');
+        
+        // Asegurar que no tenga el backdrop
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Restaurar scroll del body si está bloqueado
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+    }
 });
 </script>
