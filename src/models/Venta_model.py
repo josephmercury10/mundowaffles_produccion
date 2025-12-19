@@ -114,3 +114,16 @@ class Venta(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+        
+    def obtener_nombre_cliente(self):
+        """
+        Retorna el nombre del cliente:
+        - Si tiene cliente_id: usa cliente.persona.razon_social
+        - Si no (mostrador): usa comentarios
+        """
+        if self.cliente_id and self.cliente:
+            return self.cliente.persona.razon_social if self.cliente.persona else 'Cliente sin datos'
+        elif self.comentarios:
+            return self.comentarios
+        else:
+            return 'Cliente no especificado'

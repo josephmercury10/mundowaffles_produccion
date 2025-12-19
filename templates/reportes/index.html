@@ -83,7 +83,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Fecha</th>
+                        <th>Fecha/Hora</th>
                         <th>Canal</th>
                         <th>Cliente</th>
                         <th>Método de pago</th>
@@ -98,7 +98,7 @@
                         <td>{{ venta.id }}</td>
                         <td>{{ venta.fecha_hora.strftime('%Y-%m-%d %H:%M') if venta.fecha_hora else '' }}</td>
                         <td>{{ canal }}</td>
-                        <td>{{ venta.cliente.razon_social if venta.cliente else 'Sin cliente' }}</td>
+                        <td>{{ venta.obtener_nombre_cliente() }}</td>
                         <td>{{ venta.metodo_pago.nombre if venta.metodo_pago else 'Sin método' }}</td>
                         <td>
                             {% set es_activa, estado_text = es_venta_activa(venta) %}

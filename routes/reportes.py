@@ -55,14 +55,14 @@ def _es_venta_activa(venta):
     
     if venta.tipoventa_id == 2:  # Delivery
         if venta.estado_delivery and venta.estado_delivery < 3:
-            return True, 'Activo'
+            return True, 'Activa'
         else:
-            return False, 'Inactivo'
+            return False, 'Cerrada'
     elif venta.tipoventa_id == 1:  # Mostrador
         if venta.estado_mostrador is None or venta.estado_mostrador < 2:
-            return True, 'Activo'
+            return True, 'Activa'
         else:
-            return False, 'Inactivo'
+            return False, 'Cerrada'
     
     return False, 'Desconocido'
 
@@ -119,6 +119,9 @@ def ventas():
     total_monto_raw = db.session.query(func.coalesce(func.sum(Venta.total), 0)).filter(*filtros).scalar()
     total_monto = float(total_monto_raw or 0)
     ticket_promedio = total_monto / total_ventas if total_ventas else 0
+    
+    # condicional para sacar el nombre del cliente si es mostrador, ya que en ese caso se guarda en cometarios XD
+    
 
     metodo_label = func.coalesce(MetodoPago.nombre, 'Sin método')
     totales_metodo_raw = (
