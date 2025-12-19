@@ -122,7 +122,7 @@ function agregarAlCarritoTemporal(productoId, nombre, precio, extras) {
     const formData = new FormData();
     formData.append('producto_id', productoId);
     formData.append('nombre', nombre);
-    formData.append('precio', precio);
+    formData.append('precio_base', precio);  // Enviar como precio_base para el backend
     formData.append('extras', JSON.stringify(extras));
     
     // Hacer POST vía fetch y actualizar el container
