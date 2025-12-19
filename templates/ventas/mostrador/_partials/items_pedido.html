@@ -220,7 +220,7 @@ document.body.addEventListener('mostrar-modal-eliminacion-total', function(evt) 
 });
 
 // Limpiar backdrops cuando el modal se cierra
-const modalEl = document.getElementById('modalConfirmarEliminarPedido');
+var modalEl = document.getElementById('modalConfirmarEliminarPedido');
 if (modalEl) {
         modalEl.addEventListener('hidden.bs.modal', function() {
                 // Eliminar todos los backdrops huérfanos
@@ -234,7 +234,7 @@ if (modalEl) {
 }
 
 // Asegurar que el botón cancelar cierre correctamente el modal
-const btnCancelar = modalEl?.querySelector('.btn-secondary[data-bs-dismiss="modal"]');
+var btnCancelar = modalEl?.querySelector('.btn-secondary[data-bs-dismiss="modal"]');
 if (btnCancelar) {
         btnCancelar.addEventListener('click', function() {
                 const modal = bootstrap.Modal.getInstance(modalEl);
