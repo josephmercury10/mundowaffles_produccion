@@ -44,8 +44,24 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Detectar ambiente y configurar conexión a BD
-environment = os.environ.get('FLASK_ENV', 'development')
+# Detectar ambiente automáticamente
+# Prioridad: 1) FLASK_ENV, 2) Detección de PythonAnywhere, 3) localhost por defecto
+def detectar_ambiente():
+    """Detecta si estamos en producción (PythonAnywhere) o desarrollo (localhost)"""
+    
+    # 1. Si FLASK_ENV está definido, usarlo
+    flask_env = os.environ.get('FLASK_ENV')
+    if flask_env:
+        return flask_env
+    
+    # 2. Detectar PythonAnywhere: verificar si existe variable PA_DB_HOST o USER contiene pythonanywhere
+    if os.environ.get('PA_DB_HOST') or 'pythonanywhere' in os.environ.get('USER', '').lower():
+        return 'production'
+    
+    # 3. Por defecto: desarrollo
+    return 'development'
+
+environment = detectar_ambiente()
 config_class = app_config.get(environment, app_config['development'])
 
 # Construir la URI según el ambiente
@@ -56,9 +72,11 @@ if environment == 'production':
     db_pass = os.environ.get('PA_DB_PASSWORD', '')
     db_name = os.environ.get('PA_DB_NAME', 'josephmercury10$mundowaffles')
     sqlalchemy_url = f'mysql+pymysql://{db_user}:{db_pass}@{db_host}/{db_name}'
+    print(f"🔧 Alembic [PRODUCCIÓN]: Conectando a {db_host}/{db_name}")
 else:
     # Desarrollo: localhost
     sqlalchemy_url = 'mysql+pymysql://root:@localhost:3309/dbmundo'
+    print(f"🔧 Alembic [DESARROLLO]: Conectando a localhost:3309/dbmundo")
 
 # Override de la URL de SQLAlchemy en alembic.ini
 config.set_main_option('sqlalchemy.url', sqlalchemy_url)
