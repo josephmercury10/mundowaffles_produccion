@@ -26,6 +26,7 @@ class ProductoVenta(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     # NUEVO CAMPO JSON
     atributos_seleccionados = db.Column(db.JSON, nullable=True)
+    notas = db.Column(db.Text, nullable=True)
     
     producto = db.relationship("Producto")
     

@@ -1,9 +1,36 @@
 from logging.config import fileConfig
+import sys
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+# Agregar el directorio raíz al path para importar modelos
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Importar db y todos los modelos
+from utils.db import db
+
+# Importar todos los modelos para que SQLAlchemy los detecte
+from src.models.Venta_model import TipoVenta, ProductoVenta, Venta
+from src.models.Producto_model import Producto
+from src.models.Categoria_model import Categoria
+from src.models.Marca_model import Marca
+from src.models.Presentacion_model import Presentacion
+from src.models.Caracteristica_model import Caracteristica
+from src.models.AtributoProducto_model import AtributoProducto
+from src.models.ValorAtributo_model import ValorAtributo
+from src.models.Cliente_model import Cliente
+from src.models.Persona_model import Persona
+from src.models.Documento_model import Documento
+from src.models.Comprobante_model import Comprobante
+from src.models.MetodoPago_model import MetodoPago
+from src.models.User_model import User
+from src.models.Printer_model import Printer
+from src.models.repartidores_model import Repartidor
+from src.models.Compra_model import Compra
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,9 +43,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = db.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

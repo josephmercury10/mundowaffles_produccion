@@ -6,3 +6,5 @@ venv/
 *.pyo
 *.pyd
 /testsprite_tests/
+*.md
+*.spec
