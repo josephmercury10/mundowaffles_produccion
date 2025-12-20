@@ -13,6 +13,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # Importar db y todos los modelos
 from utils.db import db
 
+# Importar configuraciones del proyecto
+from config import config as app_config
+
 # Importar todos los modelos para que SQLAlchemy los detecte
 from src.models.Venta_model import TipoVenta, ProductoVenta, Venta
 from src.models.Producto_model import Producto
@@ -40,6 +43,25 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Detectar ambiente y configurar conexión a BD
+environment = os.environ.get('FLASK_ENV', 'development')
+config_class = app_config.get(environment, app_config['development'])
+
+# Construir la URI según el ambiente
+if environment == 'production':
+    # PythonAnywhere: construir desde variables de entorno
+    db_host = os.environ.get('PA_DB_HOST', 'josephmercury10.mysql.pythonanywhere-services.com')
+    db_user = os.environ.get('PA_DB_USER', 'josephmercury10')
+    db_pass = os.environ.get('PA_DB_PASSWORD', '')
+    db_name = os.environ.get('PA_DB_NAME', 'josephmercury10$mundowaffles')
+    sqlalchemy_url = f'mysql+pymysql://{db_user}:{db_pass}@{db_host}/{db_name}'
+else:
+    # Desarrollo: localhost
+    sqlalchemy_url = 'mysql+pymysql://root:@localhost:3309/dbmundo'
+
+# Override de la URL de SQLAlchemy en alembic.ini
+config.set_main_option('sqlalchemy.url', sqlalchemy_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
