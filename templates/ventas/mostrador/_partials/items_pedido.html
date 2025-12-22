@@ -25,6 +25,11 @@
                     {% endfor %}
                 </small>
                 {% endif %}
+                {% if producto.notas %}
+                <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.2;">
+                    📝 {{ producto.notas }}
+                </small>
+                {% endif %}
             </div>
         </div>
         <div class="item-quantity">

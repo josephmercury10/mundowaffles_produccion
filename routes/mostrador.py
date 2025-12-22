@@ -73,6 +73,7 @@ def agregar_producto():
     precio = float(request.form.get('precio'))
     precio_base = float(request.form.get('precio_base', precio))
     extras_json = request.form.get('extras', '[]')
+    comentarios = request.form.get('comentarios', '').strip()
     
     try:
         extras = json.loads(extras_json) if extras_json else []
@@ -99,7 +100,8 @@ def agregar_producto():
             'precio': precio,
             'precio_base': precio_base,
             'cantidad': 1,
-            'extras': extras
+            'extras': extras,
+            'comentarios': comentarios
         }
     else:
         # Sin extras: comportamiento normal
@@ -114,7 +116,8 @@ def agregar_producto():
                 'precio': precio,
                 'precio_base': precio,
                 'cantidad': 1,
-                'extras': []
+                'extras': [],
+                'comentarios': comentarios
             }
     
     session['carrito_mostrador'] = carrito
@@ -275,11 +278,11 @@ def guardar_pedido():
         db.session.add(venta)
         db.session.flush()
         
-        # Agregar productos a la venta con extras
+        # Agregar productos a la venta con extras o comentarios
         for item in carrito.values():
             # Serializar extras a JSON si existen
             atributos_json = None
-            if item.get('extras') and len(item['extras']) > 0:
+            if item.get('extras') and len(item['extras']) > 0 or item.get('comentarios'):
                 atributos_json = json.dumps(item['extras'])
             
             # Extraer el ID real del producto (puede venir como "123" o "123_uuid")
@@ -291,7 +294,9 @@ def guardar_pedido():
                 cantidad=item['cantidad'],
                 precio_venta=item['precio'],
                 descuento=0,
-                atributos_seleccionados=atributos_json
+                atributos_seleccionados=atributos_json,
+                notas=item.get('comentarios', '')
+                
             )
             db.session.add(producto_venta)
         
