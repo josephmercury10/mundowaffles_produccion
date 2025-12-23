@@ -587,9 +587,8 @@ def carrito_temp_agregar(pedido_id):
         
         producto_id = request.form.get('producto_id')
         nombre = request.form.get('nombre')
-        precio_base = float(request.form.get('precio_base', 0))
+        precio_base = float(request.form.get('precio', 0))
         # El precio puede venir como total, pero usamos precio_base para calcular correctamente
-        precio_recibido = float(request.form.get('precio', 0))
         extras_json = request.form.get('extras', '[]')
         comentarios = request.form.get('comentarios', '').strip()
         

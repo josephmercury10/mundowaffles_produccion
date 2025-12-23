@@ -1,3 +1,23 @@
+<style>
+    /* Estilos críticos para SVG - evita FOUC */
+    svg.icon, svg.icon-sm, svg.icon-chevron {
+        width: 1.25rem;
+        height: 1.25rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+    }
+    svg.icon-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    
+</style>
+
 <link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_delivery.css') }}">
 
 <div class="container">
@@ -23,7 +43,7 @@
                 </div>
                 <button class="btn btn-sm btn-outline-primary"
                         hx-post="/mostrador/imprimir_pedido/{{ pedido.id }}"
-                        hx-on::after-request="if(event.detail.xhr.status === 200) { alert('Pedido impreso exitosamente'); } else { alert('Error al imprimir'); }"
+                        hx-on::after-request="mostrarToast(event.detail.xhr.status === 200 ? 'success' : 'error', event.detail.xhr.status === 200 ? 'Pedido impreso exitosamente' : 'Error al imprimir')"
                         title="Imprimir recibo">
                     <svg class="icon icon-sm" viewBox="0 0 24 24">
                         <polyline points="6 9 6 2 18 2 18 9"></polyline>
@@ -31,6 +51,18 @@
                         <rect x="6" y="14" width="12" height="8"></rect>
                     </svg>
                 </button>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+            <div id="toastNotification" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body" id="toastMessage">
+                        Mensaje
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
             </div>
         </div>
 
@@ -48,58 +80,60 @@
                 </h2>
             </div>
             <div class="card-content">
-                <div class="grid grid-cols-2">
-                    <div class="info-box">
-                        <svg class="icon text-muted" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <div>
-                            <p class="info-label">Recibido</p>
-                            <p class="info-value">{{ pedido.fecha_hora.strftime('%d/%m/%Y %H:%M') if pedido.fecha_hora else '-' }}</p>
-                        </div>
-                    </div>
-                    <div class="info-box">
-                        <svg class="icon text-muted" viewBox="0 0 24 24">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <div>
-                            <p class="info-label">Cliente</p>
-                            <p class="info-value">{{ pedido.comentarios if pedido.comentarios else 'Cliente Mostrador' }}</p>
-                        </div>
-                    </div>
-                    <div class="info-box">
-                        <svg class="icon text-muted" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <div>
-                            <p class="info-label">Tiempo transcurrido</p>
-                            <p class="info-value">{{ pedido.fecha_hora|timeago if pedido.fecha_hora else '-' }}</p>
-                        </div>
-                    </div>
-                    <div class="info-box">
-                        <svg class="icon text-muted" viewBox="0 0 24 24">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
-                        <div>
-                            <p class="info-label">Estado</p>
-                            <p class="info-value">
-                                {% if pedido.estado_mostrador == 1 %}
-                                    <span class="badge bg-warning text-dark">En Preparación</span>
-                                {% elif pedido.estado_mostrador == 2 %}
-                                    <span class="badge bg-info">Listo</span>
-                                {% endif %}
-                            </p>
-                            <p>
-                                {% if pedido.comprobante_id is none %}
-                                    <span class="badge bg-secondary">Pendiente de cobro</span>
-                                {% else %}
-                                    <span class="badge bg-success">Pagado </span>
-                                {% endif %}
-                            </p>
+                <div class="info-box">
+                    <div class="w-100">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <p class="info-label mb-1">
+                                    <svg class="icon icon-sm text-muted" viewBox="0 0 24 24" style="width: 0.875rem; height: 0.875rem;">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    Recibido
+                                </p>
+                                <p class="info-value mb-0">{{ pedido.fecha_hora.strftime('%d/%m/%Y %H:%M') if pedido.fecha_hora else '-' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="info-label mb-1">
+                                    <svg class="icon icon-sm text-muted" viewBox="0 0 24 24" style="width: 0.875rem; height: 0.875rem;">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Cliente
+                                </p>
+                                <p class="info-value mb-0">{{ pedido.comentarios if pedido.comentarios else 'Cliente Mostrador' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="info-label mb-1">
+                                    <svg class="icon icon-sm text-muted" viewBox="0 0 24 24" style="width: 0.875rem; height: 0.875rem;">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    Tiempo transcurrido
+                                </p>
+                                <p class="info-value mb-0">{{ pedido.fecha_hora|timeago if pedido.fecha_hora else '-' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="info-label mb-1">
+                                    <svg class="icon icon-sm text-muted" viewBox="0 0 24 24" style="width: 0.875rem; height: 0.875rem;">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                    Estado
+                                </p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    {% if pedido.estado_mostrador == 1 %}
+                                        <span class="badge bg-warning text-dark">En Preparación</span>
+                                    {% elif pedido.estado_mostrador == 2 %}
+                                        <span class="badge bg-info">Listo</span>
+                                    {% endif %}
+                                    {% if pedido.comprobante_id is none %}
+                                        <span class="badge bg-secondary">Pendiente de cobro</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Pagado</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -289,6 +323,34 @@
     // Variable global para el total del pedido
     if (typeof totalPedidoMostrador === 'undefined') {
         var totalPedidoMostrador = {{ pedido.total|float }};
+    }
+    
+    // Función para mostrar toast
+    function mostrarToast(tipo, mensaje) {
+        const toastEl = document.getElementById('toastNotification');
+        const toastBody = document.getElementById('toastMessage');
+        
+        // Remover clases previas
+        toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-info', 'text-bg-warning');
+        
+        // Agregar clase según tipo
+        if (tipo === 'success') {
+            toastEl.classList.add('text-bg-success');
+        } else if (tipo === 'error') {
+            toastEl.classList.add('text-bg-danger');
+        } else if (tipo === 'info') {
+            toastEl.classList.add('text-bg-info');
+        } else if (tipo === 'warning') {
+            toastEl.classList.add('text-bg-warning');
+        }
+        
+        toastBody.textContent = mensaje;
+        
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 3000
+        });
+        toast.show();
     }
     
     function mostrarModalCobro(pedidoId, total) {
