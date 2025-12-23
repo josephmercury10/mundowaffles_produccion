@@ -138,6 +138,11 @@
                             {% endfor %}
                         </small>
                         {% endif %}
+                        {% if item.comentarios %}
+                        <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.2;">
+                            📝 {{ item.comentarios }}
+                        </small>
+                        {% endif %}
                     </td>
                     <td class="text-center" style="width:100px;">
                         <div class="btn-group btn-group-sm">
