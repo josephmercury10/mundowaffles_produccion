@@ -22,6 +22,19 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Caja de comentarios -->
+                <div class="mt-3">
+                    <label for="extras-comentarios-mostrador" class="form-label fw-bold">
+                        <i class="bi bi-chat-left-text"></i> Comentarios adicionales
+                    </label>
+                    <textarea class="form-control" 
+                              id="extras-comentarios-mostrador" 
+                              rows="3" 
+                              placeholder="Ej: Sin azúcar, agregar servilletas extra, etc."
+                              maxlength="250"></textarea>
+                    <small class="text-muted">Opcional - Máximo 250 caracteres</small>
+                </div>
                 
                 <!-- Resumen de precio -->
                 <div class="mt-3 p-2 bg-light rounded">
@@ -196,6 +209,7 @@ document.getElementById('btn-confirmar-extras').addEventListener('click', functi
     const productoId = document.getElementById('extras-producto-id').value;
     const nombre = document.getElementById('extras-producto-nombre-hidden').value;
     const precioBase = parseFloat(document.getElementById('extras-producto-precio').value);
+    const comentarios = document.getElementById('extras-comentarios-mostrador').value.trim();
     
     // Calcular precio total
     let precioExtras = 0;
@@ -209,6 +223,7 @@ document.getElementById('btn-confirmar-extras').addEventListener('click', functi
     formData.append('precio', precioTotal);
     formData.append('precio_base', precioBase);
     formData.append('extras', JSON.stringify(extrasSeleccionados));
+    formData.append('comentarios', comentarios);
     
     // Enviar al servidor (ruta de delivery)
     fetch('/delivery/agregar_al_carrito', {
