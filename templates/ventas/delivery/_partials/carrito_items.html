@@ -16,6 +16,9 @@
                     </small>
                     {% endif %}
                     <br>
+                    {% if item.comentarios %}
+                    <small class="text-muted">📝 {{ item.comentarios }}</small><br>
+                    {% endif %}
                     <small class="text-muted">${{ item.precio|format_price }} c/u</small>
                 </td>
                 <td class="align-middle text-center" style="width: 100px;">

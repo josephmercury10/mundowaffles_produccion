@@ -29,7 +29,7 @@
                         <i class="bi bi-chat-left-text"></i> Comentarios adicionales
                     </label>
                     <textarea class="form-control" 
-                              id="extras-comentarios-mostrador" 
+                              id="extras-comentarios-delivery" 
                               rows="3" 
                               placeholder="Ej: Sin azúcar, agregar servilletas extra, etc."
                               maxlength="250"></textarea>
@@ -209,7 +209,7 @@ document.getElementById('btn-confirmar-extras').addEventListener('click', functi
     const productoId = document.getElementById('extras-producto-id').value;
     const nombre = document.getElementById('extras-producto-nombre-hidden').value;
     const precioBase = parseFloat(document.getElementById('extras-producto-precio').value);
-    const comentarios = document.getElementById('extras-comentarios-mostrador').value.trim();
+    const comentarios = document.getElementById('extras-comentarios-delivery').value.trim();
     
     // Calcular precio total
     let precioExtras = 0;

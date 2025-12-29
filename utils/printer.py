@@ -542,6 +542,15 @@ class ThermalPrinter:
             for extra in extras:
                 valor = extra.get('valor', '') if isinstance(extra, dict) else str(extra)
                 lineas.append(f"   + {valor.upper()[:32]}")
+            
+            # Mostrar comentarios si existen
+            if isinstance(item, dict):
+                comentarios = item.get('comentarios', '')
+            else:
+                comentarios = item.notas if hasattr(item, 'notas') else ''
+            
+            if comentarios:
+                lineas.append(f"   >> {comentarios.upper()[:35]}")
         
         lineas.append("")
         
@@ -566,6 +575,10 @@ class ThermalPrinter:
                 for extra in extras:
                     valor = extra.get('valor', '') if isinstance(extra, dict) else str(extra)
                     lineas.append(f"   + {valor.upper()[:32]}")
+                # Mostrar comentarios si existen
+                comentarios = item.get('comentarios', '')
+                if comentarios:
+                    lineas.append(f"   >> {comentarios.upper()[:35]}")
             
             lineas.append("")
             

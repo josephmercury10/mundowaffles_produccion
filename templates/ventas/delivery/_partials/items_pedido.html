@@ -18,6 +18,11 @@
                     {% endfor %}
                 </small>
                 {% endif %}
+                {% if producto.notas %}
+                <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.2;">
+                    📝 {{ producto.notas }}
+                </small>
+                {% endif %}
             </div>
         </div>
         <div class="item-actions">
@@ -121,6 +126,11 @@
                             {% for extra in item.extras %}
                             + {{ extra.valor }}{% if extra.precio_adicional > 0 %} (${{ extra.precio_adicional|format_price }}){% endif %}{% if not loop.last %}, {% endif %}
                             {% endfor %}
+                        </small>
+                        {% endif %}
+                        {% if item.comentarios %}
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">
+                            📝 {{ item.comentarios }}
                         </small>
                         {% endif %}
                     </td>

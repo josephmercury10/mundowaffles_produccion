@@ -117,13 +117,14 @@ function abrirModalExtrasDetalle(productoId, nombre, precio) {
         });
 }
 
-function agregarAlCarritoTemporal(productoId, nombre, precio, extras) {
+function agregarAlCarritoTemporal(productoId, nombre, precio, extras, comentarios) {
     // Crear FormData
     const formData = new FormData();
     formData.append('producto_id', productoId);
     formData.append('nombre', nombre);
     formData.append('precio_base', precio);  // Enviar como precio_base para el backend
     formData.append('extras', JSON.stringify(extras));
+    formData.append('comentarios', comentarios);
     
     // Hacer POST vía fetch y actualizar el container
     fetch(`/delivery/pedido/${pedidoIdActual}/carrito_temp/agregar`, {
@@ -154,6 +155,7 @@ if (typeof handleConfirmarExtrasDetalle === 'undefined') {
             const productoId = document.getElementById('extras-producto-id').value;
             const nombre = document.getElementById('extras-producto-nombre-hidden').value;
             const precioBase = parseFloat(document.getElementById('extras-producto-precio').value);
+            const comentarios = document.getElementById('extras-comentarios-delivery').value.trim();
             
             // Obtener extras seleccionados
             const checkboxes = document.querySelectorAll('.extra-checkbox:checked');
@@ -178,7 +180,7 @@ if (typeof handleConfirmarExtrasDetalle === 'undefined') {
             if (modal) modal.hide();
             
             // Agregar al carrito temporal (precio base, los extras se calculan en backend)
-            agregarAlCarritoTemporal(productoId, nombre, precioBase, extras);
+            agregarAlCarritoTemporal(productoId, nombre, precioBase, extras, comentarios);
         }
     };
     

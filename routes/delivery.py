@@ -122,6 +122,7 @@ def agregar_al_carrito():
     precio = float(request.form.get('precio'))
     precio_base = float(request.form.get('precio_base', precio))
     extras_json = request.form.get('extras', '[]')
+    comentarios = request.form.get('comentarios', '')
     
     try:
         extras = json.loads(extras_json) if extras_json else []
@@ -148,7 +149,8 @@ def agregar_al_carrito():
             'precio': precio,
             'precio_base': precio_base,
             'cantidad': 1,
-            'extras': extras
+            'extras': extras,
+            'comentarios': comentarios
         }
     else:
         # Sin extras: comportamiento normal
@@ -163,7 +165,8 @@ def agregar_al_carrito():
                 'precio': precio,
                 'precio_base': precio,
                 'cantidad': 1,
-                'extras': []
+                'extras': [],
+                'comentarios': comentarios
             }
     
     session['carrito'] = carrito
@@ -361,7 +364,8 @@ def finalizar_pedido():
                 cantidad=item['cantidad'],
                 precio_venta=item['precio'],
                 descuento=0,
-                atributos_seleccionados=atributos_json
+                atributos_seleccionados=atributos_json,
+                notas=item.get('comentarios')
             )
             db.session.add(producto_venta)
         
@@ -807,6 +811,7 @@ def carrito_temp_agregar(pedido_id):
         # El precio puede venir como total, pero usamos precio_base para calcular correctamente
         precio_recibido = float(request.form.get('precio', 0))
         extras_json = request.form.get('extras', '[]')
+        comentarios = request.form.get('comentarios', '')
         
         try:
             extras = json.loads(extras_json) if extras_json else []
@@ -830,7 +835,8 @@ def carrito_temp_agregar(pedido_id):
             'precio': precio_base,
             'precio_total': precio_total,
             'cantidad': 1,
-            'extras': extras
+            'extras': extras,
+            'comentarios': comentarios
         }
         
         session[carrito_key] = carrito
@@ -902,6 +908,7 @@ def confirmar_productos(pedido_id):
             producto_id = int(item['id'])
             extras = item.get('extras', [])
             precio_total = item.get('precio_total', item['precio'])
+            comentarios = item.get('comentarios', '')
             
             # Siempre crear un nuevo registro para respetar los extras únicos
             nuevo_producto = ProductoVenta(
@@ -910,14 +917,16 @@ def confirmar_productos(pedido_id):
                 cantidad=item['cantidad'],
                 precio_venta=precio_total,  # Precio incluye extras
                 descuento=0,
-                atributos_seleccionados=extras if extras else None
+                atributos_seleccionados=extras if extras else None,
+                notas=comentarios
             )
             db.session.add(nuevo_producto)
             
             productos_agregados.append({
                 'nombre': item['nombre'],
                 'cantidad': item['cantidad'],
-                'extras': extras
+                'extras': extras,
+                'comentarios': comentarios
             })
         
         # Recalcular total
