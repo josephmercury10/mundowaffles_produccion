@@ -9,3 +9,5 @@ venv/
 *.md
 *.spec
 /misc/
+/build/
+/dist/

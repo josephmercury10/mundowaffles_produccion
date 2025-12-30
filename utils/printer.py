@@ -147,6 +147,11 @@ class ThermalPrinter:
 
     # ===== Serialización de datos para enviar a PrintHost =====
     def _serialize_pedido(self, pedido):
+        # Obtener información del método de pago
+        metodo_pago_nombre = None
+        if hasattr(pedido, 'metodo_pago') and pedido.metodo_pago:
+            metodo_pago_nombre = pedido.metodo_pago.nombre
+        
         return {
             'id': getattr(pedido, 'id', None),
             'fecha_hora': getattr(pedido, 'fecha_hora', None).isoformat() if getattr(pedido, 'fecha_hora', None) else None,
@@ -154,6 +159,10 @@ class ThermalPrinter:
             'costo_envio': float(getattr(pedido, 'costo_envio', 0) or 0),
             'estado_delivery': getattr(pedido, 'estado_delivery', None),
             'comentarios': getattr(pedido, 'comentarios', None),
+            'metodo_pago': metodo_pago_nombre,
+            'monto_recibido': float(getattr(pedido, 'monto_recibido', 0) or 0) if getattr(pedido, 'monto_recibido', None) else None,
+            'vuelto': float(getattr(pedido, 'vuelto', 0) or 0) if getattr(pedido, 'vuelto', None) else None,
+            'referencia_pago': getattr(pedido, 'referencia_pago', None),
         }
 
     def _serialize_cliente(self, cliente):
@@ -197,6 +206,7 @@ class ThermalPrinter:
                 'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
                 'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
                 'extras': extras,
+                'notas': getattr(item, 'notas', None) or '',
             })
         return serializados
 

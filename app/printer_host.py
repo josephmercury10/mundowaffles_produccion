@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 CONFIG = {
     'puerto': 8765,
     'host': '0.0.0.0',
-    'version': '4.0.0',
+    'version': '4.1.0',
 }
 
 
@@ -161,6 +161,7 @@ def build_recibo_delivery(payload: Dict[str, Any]) -> str:
     cliente = payload.get('cliente', {})
     items = payload.get('items', [])
     total_con_envio = payload.get('total_con_envio')
+    
     ancho = 42
 
     lineas = []
@@ -181,6 +182,27 @@ def build_recibo_delivery(payload: Dict[str, Any]) -> str:
         if cliente.get('direccion'):
             lineas.append(f"  Dir: {cliente.get('direccion')}")
     lineas.append("")
+
+    # Información de pago
+    metodo_pago = pedido.get('metodo_pago')
+    if metodo_pago:
+        lineas.append(_line('-', ancho))
+        lineas.append("FORMA DE PAGO:")
+        lineas.append(f"  {metodo_pago}")
+        
+        # Si es efectivo, mostrar monto recibido y vuelto
+        monto_recibido = pedido.get('monto_recibido')
+        vuelto = pedido.get('vuelto')
+        if monto_recibido is not None and monto_recibido > 0:
+            lineas.append(f"  Recibe: {_format_precio(monto_recibido)}")
+            if vuelto is not None and vuelto > 0:
+                lineas.append(f"  Vuelto: {_format_precio(vuelto)}")
+        
+        # Si tiene referencia (transferencia/tarjeta)
+        referencia = pedido.get('referencia_pago')
+        if referencia:
+            lineas.append(f"  Ref: {referencia}")
+        lineas.append("")
 
     lineas.append(_line('=', ancho))
     lineas.append("")
@@ -308,6 +330,15 @@ def build_comanda(payload: Dict[str, Any]) -> str:
             if isinstance(extra, dict):
                 valor = extra.get('valor', '')
                 lineas.append(f"   + {str(valor).upper()[:32]}")
+        
+        # Mostrar comentarios/notas si existen
+        if isinstance(item, dict):
+            notas = item.get('notas', '') or item.get('comentarios', '')
+        else:
+            notas = item.notas if hasattr(item, 'notas') else ''
+        
+        if notas:
+            lineas.append(f"   >> {str(notas).upper()[:35]}")
     
     lineas.append("\n\n")
     
@@ -338,6 +369,15 @@ def build_agregados(payload: Dict[str, Any]) -> str:
             if isinstance(extra, dict):
                 valor = extra.get('valor', '')
                 lineas.append(f"   + {str(valor).upper()[:32]}")
+        
+        # Mostrar comentarios/notas si existen
+        if isinstance(item, dict):
+            notas = item.get('notas', '') or item.get('comentarios', '')
+        else:
+            notas = item.notas if hasattr(item, 'notas') else ''
+        
+        if notas:
+            lineas.append(f"   >> {str(notas).upper()[:35]}")
     
     lineas.append("\n\n")
     
@@ -368,6 +408,15 @@ def build_eliminados(payload: Dict[str, Any]) -> str:
             if isinstance(extra, dict):
                 valor = extra.get('valor', '')
                 lineas.append(f"   + {str(valor).upper()[:32]}")
+        
+        # Mostrar comentarios/notas si existen
+        if isinstance(item, dict):
+            notas = item.get('notas', '') or item.get('comentarios', '')
+        else:
+            notas = item.notas if hasattr(item, 'notas') else ''
+        
+        if notas:
+            lineas.append(f"   >> {str(notas).upper()[:35]}")
     
     lineas.append("\n\n")
     
