@@ -235,6 +235,7 @@ class ThermalPrinter:
                     'nombre': item.get('nombre'),
                     'cantidad': item.get('cantidad'),
                     'extras': item.get('extras', []),
+                    'comentarios': item.get('comentarios') or item.get('notas') or '',
                 }
             else:
                 extras = []
@@ -252,6 +253,7 @@ class ThermalPrinter:
                     'nombre': getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
                     'cantidad': getattr(item, 'cantidad', 1),
                     'extras': extras,
+                    'comentarios': item.get('comentarios') or item.get('notas') or '',
                 }
             items_serializados.append(item_data)
         
@@ -308,6 +310,7 @@ class ThermalPrinter:
                 'precio_venta': float(getattr(item, 'precio_venta', 0) or 0),
                 'subtotal': float(getattr(item, 'cantidad', 1)) * float(getattr(item, 'precio_venta', 0) or 0),
                 'extras': extras,
+                'comentarios': item.get('comentarios') or item.get('notas') or '',
             })
         return {
             'pedido': self._serialize_pedido(pedido),
