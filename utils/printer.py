@@ -249,11 +249,19 @@ class ThermalPrinter:
                             extras = atributos
                     except:
                         pass
+                
+                # Extraer comentarios/notas y limpiar valores 'None' como string
+                comentarios_raw = getattr(item, 'comentarios', '') or getattr(item, 'notas', '') or ''
+                if comentarios_raw in (None, 'None', 'null', 'NULL', 'none'):
+                    comentarios = ''
+                else:
+                    comentarios = str(comentarios_raw).strip() if comentarios_raw else ''
+                
                 item_data = {
                     'nombre': getattr(item, 'nombre', None) or getattr(item.producto, 'nombre', str(item)) if hasattr(item, 'producto') else str(item),
                     'cantidad': getattr(item, 'cantidad', 1),
                     'extras': extras,
-                    'comentarios': item.get('comentarios') or item.get('notas') or '',
+                    'comentarios': comentarios,
                 }
             items_serializados.append(item_data)
         
@@ -265,15 +273,75 @@ class ThermalPrinter:
         }
 
     def _payload_agregados(self, pedido, productos):
+        productos_serializados = []
+        for p in productos:
+            if isinstance(p, dict):
+                prod_data = {
+                    'nombre': p.get('nombre'),
+                    'cantidad': p.get('cantidad'),
+                    'extras': p.get('extras', []),
+                    'comentarios': p.get('comentarios') or p.get('notas') or '',
+                }
+            else:
+                extras = []
+                if hasattr(p, 'atributos_seleccionados') and p.atributos_seleccionados:
+                    import json
+                    try:
+                        atributos = p.atributos_seleccionados
+                        if isinstance(atributos, str):
+                            atributos = json.loads(atributos)
+                        if isinstance(atributos, list):
+                            extras = atributos
+                    except:
+                        pass
+                comentarios = getattr(p, 'comentarios', '') or getattr(p, 'notas', '') or ''
+                prod_data = {
+                    'nombre': getattr(p, 'nombre', None) or getattr(p.producto, 'nombre', str(p)) if hasattr(p, 'producto') else str(p),
+                    'cantidad': getattr(p, 'cantidad', 1),
+                    'extras': extras,
+                    'comentarios': comentarios,
+                }
+            productos_serializados.append(prod_data)
+        
         return {
             'pedido_id': getattr(pedido, 'id', None),
-            'productos': productos,
+            'productos': productos_serializados,
         }
 
     def _payload_eliminados(self, pedido, productos):
+        productos_serializados = []
+        for p in productos:
+            if isinstance(p, dict):
+                prod_data = {
+                    'nombre': p.get('nombre'),
+                    'cantidad': p.get('cantidad'),
+                    'extras': p.get('extras', []),
+                    'comentarios': p.get('comentarios') or p.get('notas') or '',
+                }
+            else:
+                extras = []
+                if hasattr(p, 'atributos_seleccionados') and p.atributos_seleccionados:
+                    import json
+                    try:
+                        atributos = p.atributos_seleccionados
+                        if isinstance(atributos, str):
+                            atributos = json.loads(atributos)
+                        if isinstance(atributos, list):
+                            extras = atributos
+                    except:
+                        pass
+                comentarios = getattr(p, 'comentarios', '') or getattr(p, 'notas', '') or ''
+                prod_data = {
+                    'nombre': getattr(p, 'nombre', None) or getattr(p.producto, 'nombre', str(p)) if hasattr(p, 'producto') else str(p),
+                    'cantidad': getattr(p, 'cantidad', 1),
+                    'extras': extras,
+                    'comentarios': comentarios,
+                }
+            productos_serializados.append(prod_data)
+        
         return {
             'pedido_id': getattr(pedido, 'id', None),
-            'productos': productos,
+            'productos': productos_serializados,
         }
 
     def _payload_delivery(self, pedido, cliente, productos):
