@@ -1,3 +1,23 @@
+<style>
+    /* Estilos críticos para SVG - evita FOUC */
+    svg.icon, svg.icon-sm, svg.icon-chevron {
+        width: 1.25rem;
+        height: 1.25rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+    }
+    svg.icon-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    
+</style>
+
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_delivery.css') }}">
 {% endblock %}
