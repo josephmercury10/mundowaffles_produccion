@@ -120,6 +120,10 @@ def ventas():
     total_monto = float(total_monto_raw or 0)
     ticket_promedio = total_monto / total_ventas if total_ventas else 0
     
+    # Calcular total de costos de envío (solo para delivery)
+    total_costos_envio_raw = db.session.query(func.coalesce(func.sum(Venta.costo_envio), 0)).filter(*filtros).filter(Venta.tipoventa_id == 2).scalar()
+    total_costos_envio = float(total_costos_envio_raw or 0)
+    
     # condicional para sacar el nombre del cliente si es mostrador, ya que en ese caso se guarda en cometarios XD
     
 
@@ -153,6 +157,7 @@ def ventas():
         total_ventas=total_ventas,
         total_monto=total_monto,
         ticket_promedio=ticket_promedio,
+        total_costos_envio=total_costos_envio,
         totales_metodo=totales_metodo,
         es_venta_activa=_es_venta_activa,
     )

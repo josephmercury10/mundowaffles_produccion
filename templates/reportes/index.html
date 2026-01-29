@@ -4,7 +4,6 @@
 <div class="container py-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Reportes de Ventas</h4>
-        <span class="text-muted">Hora local del servidor</span>
     </div>
 
     <form method="get" class="row g-2 align-items-end mb-3">
@@ -55,7 +54,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <div class="card h-100">
                 <div class="card-body">
                     <p class="text-muted mb-1">Ticket promedio</p>
@@ -63,7 +62,15 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
+            <div class="card h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Costos de envío</p>
+                    <h4 class="mb-0">${{ total_costos_envio|format_price }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-2">
             <div class="card h-100">
                 <div class="card-body">
                     <p class="text-muted mb-1">Métodos de pago</p>
@@ -76,10 +83,15 @@
     <div class="card mt-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Ventas</strong>
-            <small class="text-muted">Mostrando hasta 200 registros recientes</small>
+            <div class="d-flex align-items-center gap-2">
+                <button id="btn-limpiar-filtros" class="btn btn-sm btn-outline-secondary" title="Limpiar filtros">
+                    <i class="bi bi-x-circle"></i> Limpiar filtros
+                </button>
+                <small class="text-muted">Mostrando hasta 200 registros recientes</small>
+            </div>
         </div>
         <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table id="tabla-ventas" class="table table-sm align-middle mb-0">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -88,7 +100,18 @@
                         <th>Cliente</th>
                         <th>Método de pago</th>
                         <th>Estado</th>
+                        <th class="text-end">Costo Envío</th>
                         <th class="text-end">Total</th>
+                    </tr>
+                    <tr class="table-light">
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="0" placeholder="Filtrar ID"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="1" placeholder="Filtrar fecha"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="2" placeholder="Filtrar canal"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="3" placeholder="Filtrar cliente"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="4" placeholder="Filtrar método"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="5" placeholder="Filtrar estado"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="6" placeholder="Filtrar envío"></th>
+                        <th><input type="text" class="form-control form-control-sm filtro-columna" data-columna="7" placeholder="Filtrar total"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,11 +133,18 @@
                                 <span class="badge bg-danger">{{ estado_text }}</span>
                             {% endif %}
                         </td>
+                        <td class="text-end">
+                            {% if venta.tipoventa_id == 2 and venta.costo_envio %}
+                                ${{ venta.costo_envio|format_price }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end">${{ venta.total|format_price }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados</td>
+                        <td colspan="8" class="text-center text-muted py-3">Sin resultados para los filtros seleccionados</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -152,4 +182,104 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    // Función para aplicar todos los filtros
+    function aplicarFiltros() {
+        let filasMostradas = 0;
+        
+        $('#tabla-ventas tbody tr').each(function() {
+            let mostrarFila = true;
+            const $fila = $(this);
+            
+            // Si es el mensaje de "sin resultados", saltar
+            if ($fila.find('td').length === 1 && $fila.find('td').attr('colspan')) {
+                return;
+            }
+            
+            $('.filtro-columna').each(function() {
+                const columna = $(this).data('columna');
+                const valor = $(this).val().toLowerCase();
+                
+                if (valor !== '') {
+                    const textoColumna = $fila.find('td').eq(columna).text().toLowerCase();
+                    if (!textoColumna.includes(valor)) {
+                        mostrarFila = false;
+                        return false; // break del each
+                    }
+                }
+            });
+            
+            $fila.toggle(mostrarFila);
+            if (mostrarFila) filasMostradas++;
+        });
+        
+        actualizarMensajeResultados(filasMostradas);
+    }
+    
+    // Aplicar filtros en cada cambio
+    $('.filtro-columna').on('keyup', aplicarFiltros);
+    
+    // Actualizar mensaje de resultados
+    function actualizarMensajeResultados(cantidad) {
+        let $mensajeExistente = $('#tabla-ventas tbody tr.sin-resultados-filtro');
+        
+        if (cantidad === 0) {
+            if ($mensajeExistente.length === 0) {
+                $('#tabla-ventas tbody').append(
+                    '<tr class="sin-resultados-filtro"><td colspan="8" class="text-center text-muted py-3">No se encontraron resultados con los filtros aplicados</td></tr>'
+                );
+            }
+            $mensajeExistente.show();
+        } else {
+            $mensajeExistente.remove();
+        }
+    }
+    
+    // Botón limpiar filtros
+    $('#btn-limpiar-filtros').on('click', function() {
+        $('.filtro-columna').val('');
+        $('#tabla-ventas tbody tr').show();
+        $('#tabla-ventas tbody tr.sin-resultados-filtro').remove();
+    });
+    
+    // Manejo del selector de rango de fechas
+    $('#rango').on('change', function() {
+        const rango = $(this).val();
+        const hoy = new Date();
+        let desde, hasta;
+        
+        if (rango === 'hoy') {
+            desde = hasta = hoy.toISOString().split('T')[0];
+            $('#fecha_desde').val(desde);
+            $('#fecha_hasta').val(hasta);
+            $('#fecha_desde, #fecha_hasta').prop('disabled', true);
+        } else if (rango === 'semana') {
+            const inicioSemana = new Date(hoy);
+            inicioSemana.setDate(hoy.getDate() - hoy.getDay());
+            desde = inicioSemana.toISOString().split('T')[0];
+            hasta = hoy.toISOString().split('T')[0];
+            $('#fecha_desde').val(desde);
+            $('#fecha_hasta').val(hasta);
+            $('#fecha_desde, #fecha_hasta').prop('disabled', true);
+        } else if (rango === 'mes') {
+            desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
+            hasta = hoy.toISOString().split('T')[0];
+            $('#fecha_desde').val(desde);
+            $('#fecha_hasta').val(hasta);
+            $('#fecha_desde, #fecha_hasta').prop('disabled', true);
+        } else if (rango === 'personalizado') {
+            $('#fecha_desde, #fecha_hasta').prop('disabled', false);
+        } else if (rango === 'historico') {
+            $('#fecha_desde').val('');
+            $('#fecha_hasta').val('');
+            $('#fecha_desde, #fecha_hasta').prop('disabled', true);
+        }
+    });
+    
+    // Inicializar estado de campos de fecha al cargar
+    $('#rango').trigger('change');
+});
+</script>
 {% endblock %}
