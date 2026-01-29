@@ -92,6 +92,9 @@ function abrirModalExtrasMostrador(productoId, nombre, precio, esDetalle = false
     document.getElementById('extras-precio-adicional-mostrador').textContent = '+' + formatPriceMostrador(0);
     document.getElementById('extras-precio-total-mostrador').textContent = formatPriceMostrador(precio);
     
+    // Limpiar textarea de comentarios
+    document.getElementById('extras-comentarios-mostrador').value = '';
+    
     // Mostrar loading
     document.getElementById('extras-container-mostrador').innerHTML = `
         <div class="text-center py-3">

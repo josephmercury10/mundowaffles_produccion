@@ -89,6 +89,9 @@ function abrirModalExtras(productoId, nombre, precio) {
     document.getElementById('extras-precio-adicional').textContent = '+' + formatPriceModal(0);
     document.getElementById('extras-precio-total').textContent = formatPriceModal(precio);
     
+    // Limpiar textarea de comentarios
+    document.getElementById('extras-comentarios-delivery').value = '';
+    
     // Mostrar loading
     document.getElementById('extras-container').innerHTML = `
         <div class="text-center py-3">
